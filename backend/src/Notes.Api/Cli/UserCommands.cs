@@ -38,7 +38,7 @@ public static class UserCommands
                     return 0;
                 case "add" when args.Length >= 3:
                     var name = OptionValue(args, "--name");
-                    await users.CreateAsync(args[2], ReadPassword(), name, args.Contains("--admin"));
+                    await users.CreateAsync("command line", args[2], ReadPassword(), name, args.Contains("--admin"));
                     Console.WriteLine($"Created {UserService.NormalizeEmail(args[2])}");
                     return 0;
                 case "set-password" when args.Length >= 3:
@@ -46,7 +46,7 @@ public static class UserCommands
                     var db = services.GetRequiredService<NotesDbContext>();
                     var id = await db.Users.Where(u => u.Email == email).Select(u => (Guid?)u.Id).FirstOrDefaultAsync()
                         ?? throw ApiException.NotFound($"No user {email}");
-                    await users.UpdateAsync(id, ReadPassword(), null, null);
+                    await users.UpdateAsync("command line", id, ReadPassword(), null, null);
                     Console.WriteLine($"Password changed for {email}; their sessions were ended");
                     return 0;
                 default:

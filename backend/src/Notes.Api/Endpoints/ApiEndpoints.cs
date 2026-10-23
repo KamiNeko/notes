@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Security.Claims;
 using Microsoft.Net.Http.Headers;
@@ -53,6 +54,9 @@ public static class ApiEndpoints
             return string.IsNullOrWhiteSpace(text) ? Results.Ok(Array.Empty<object>()) : Results.Ok(await search.SearchAsync(user.UserId(), text, ct));
         });
         MapResources(authed.MapGroup("/resources"));
+        // All of the user's notes as a ZIP of Markdown files (CRA: users can take their data elsewhere)
+        authed.MapGet("/export", async (ClaimsPrincipal user, ExportService export, TimeProvider clock, CancellationToken ct) =>
+            Results.Stream(await export.CreateAsync(user.UserId(), ct), "application/zip", $"notes-export-{clock.GetUtcNow():yyyy-MM-dd}.zip"));
         MapAdmin(api.MapGroup("/admin").RequireAuthorization(SessionClaims.AdminPolicy));
     }
 
@@ -60,24 +64,45 @@ public static class ApiEndpoints
     {
         var auth = api.MapGroup("/auth");
 
-        auth.MapPost("/login", async (LoginRequest body, HttpContext context, UserService users, SessionService sessions, SessionCookies cookies, CancellationToken ct) =>
+        auth.MapPost("/login", async (LoginRequest body, HttpContext context, UserService users, SessionService sessions, SessionCookies cookies,
+            LoginThrottle throttle, ILoggerFactory loggers, CancellationToken ct) =>
         {
             if (string.IsNullOrEmpty(body.Email) || string.IsNullOrEmpty(body.Password)) throw ApiException.BadRequest("Email and password are required");
-            var user = await users.VerifyCredentialsAsync(body.Email, body.Password, ct)
-                ?? throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid email or password");
+            var log = loggers.CreateLogger(SecurityLog.Category);
+            var email = UserService.NormalizeEmail(body.Email);
+            var client = SecurityLog.Client(context);
+            if (throttle.LockedFor(email) is { } locked)
+            {
+                SecurityLog.LoginLocked(log, email, client);
+                context.Response.Headers.RetryAfter = ((int)Math.Ceiling(locked.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+                return Results.Json(new { error = "Too many failed sign-ins for this account. Please try again later.", status = 429 },
+                    statusCode: StatusCodes.Status429TooManyRequests);
+            }
+            var user = await users.VerifyCredentialsAsync(email, body.Password, ct);
+            if (user is null)
+            {
+                throttle.RecordFailure(email);
+                SecurityLog.LoginFailed(log, email, client);
+                throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid email or password");
+            }
+            throttle.Reset(email);
             var (token, expires) = await sessions.CreateAsync(user.Id, ct);
             cookies.Write(context, token, expires);
+            SecurityLog.LoginSucceeded(log, user.Email, client);
             // Only non-browser API clients (no Origin header) get the token in the body; browsers only ever get the httpOnly cookie
             return Results.Ok(context.Request.Headers.ContainsKey(HeaderNames.Origin)
                 ? new Dictionary<string, object> { ["userId"] = Ids.Format(user.Id), ["user"] = UserService.ToDto(user) }
                 : new Dictionary<string, object> { ["userId"] = Ids.Format(user.Id), ["user"] = UserService.ToDto(user), ["sessionId"] = token });
         }).RequireRateLimiting(RateLimits.LoginPolicy);
 
-        auth.MapPost("/logout", async (HttpContext context, SessionService sessions, CancellationToken ct) =>
+        auth.MapPost("/logout", async (HttpContext context, SessionService sessions, ILoggerFactory loggers, CancellationToken ct) =>
         {
             var (token, _) = SessionCookies.Read(context.Request);
             SessionCookies.Clear(context);
-            if (!string.IsNullOrEmpty(token)) await sessions.RevokeAsync(token, ct);
+            if (!string.IsNullOrEmpty(token) && await sessions.RevokeAsync(token, ct) is { } userId)
+            {
+                SecurityLog.LoggedOut(loggers.CreateLogger(SecurityLog.Category), Ids.Format(userId));
+            }
             return Results.Ok(new { message = "Successfully logged out" });
         });
 
@@ -87,10 +112,11 @@ public static class ApiEndpoints
             return Results.Ok(new { valid = true, user = UserService.ToDto(user) });
         }).RequireAuthorization();
 
-        auth.MapPost("/password", async (ChangePasswordRequest body, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
+        auth.MapPost("/password", async (ChangePasswordRequest body, ClaimsPrincipal user, UserService users, ILoggerFactory loggers, CancellationToken ct) =>
         {
             if (string.IsNullOrEmpty(body.CurrentPassword) || body.NewPassword is null) throw ApiException.BadRequest("Current and new password are required");
             await users.ChangeOwnPasswordAsync(user.UserId(), user.SessionIdOf(), body.CurrentPassword, body.NewPassword, ct);
+            SecurityLog.PasswordChanged(loggers.CreateLogger(SecurityLog.Category), Ids.Format(user.UserId()));
             return Results.NoContent();
         }).RequireAuthorization().RequireRateLimiting(RateLimits.LoginPolicy);
     }
@@ -232,21 +258,24 @@ public static class ApiEndpoints
         });
     }
 
+    /// <summary>Who made an admin change, for the security log.</summary>
+    private static string Actor(ClaimsPrincipal user) => user.FindFirstValue(ClaimTypes.Email) ?? Ids.Format(user.UserId());
+
     private static void MapAdmin(RouteGroupBuilder group)
     {
         group.MapGet("/users", async (UserService users, CancellationToken ct) => Results.Ok(await users.ListAsync(ct)));
 
-        group.MapPost("/users", async (CreateUserRequest body, UserService users, CancellationToken ct) =>
-            Results.Created((string?)null, await users.CreateAsync(body.Email ?? "", body.Password ?? "", body.DisplayName, body.IsAdmin ?? false, ct)));
+        group.MapPost("/users", async (CreateUserRequest body, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
+            Results.Created((string?)null, await users.CreateAsync(Actor(user), body.Email ?? "", body.Password ?? "", body.DisplayName, body.IsAdmin ?? false, ct)));
 
-        group.MapPut("/users/{id}", async (string id, UpdateUserRequest body, UserService users, CancellationToken ct) =>
-            Results.Ok(await users.UpdateAsync(Ids.Parse(id, "user id"), body.Password, body.DisplayName, body.IsAdmin, ct)));
+        group.MapPut("/users/{id}", async (string id, UpdateUserRequest body, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
+            Results.Ok(await users.UpdateAsync(Actor(user), Ids.Parse(id, "user id"), body.Password, body.DisplayName, body.IsAdmin, ct)));
 
         group.MapDelete("/users/{id}", async (string id, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
         {
             var userId = Ids.Parse(id, "user id");
             if (userId == user.UserId()) throw ApiException.Conflict("You can't delete your own account");
-            await users.DeleteAsync(userId, ct);
+            await users.DeleteAsync(Actor(user), userId, ct);
             return Results.NoContent();
         });
     }

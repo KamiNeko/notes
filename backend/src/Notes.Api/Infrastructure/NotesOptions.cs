@@ -14,14 +14,23 @@ public class NotesOptions
     /// <summary>The URL users open, e.g. <c>https://notes.example.com</c>. Used for the CSRF origin check and the cookie's Secure flag.</summary>
     public string? PublicUrl { get; set; }
 
-    /// <summary>Honour <c>X-Forwarded-*</c> headers from a reverse proxy.</summary>
+    /// <summary>Honour <c>X-Forwarded-*</c> headers from a reverse proxy (only from <see cref="TrustedProxies"/>).</summary>
     public bool TrustProxy { get; set; }
+
+    /// <summary>
+    /// Comma-separated addresses or CIDR ranges the reverse proxy connects from. Empty: loopback and the
+    /// private ranges (10/8, 172.16/12, 192.168/16, fc00::/7), which covers a proxy on the LAN or in Docker.
+    /// </summary>
+    public string? TrustedProxies { get; set; }
 
     /// <summary><c>auto</c> (Secure over HTTPS), <c>true</c> or <c>false</c>.</summary>
     public string CookieSecure { get; set; } = "auto";
 
     /// <summary>A session ends after this many days without use.</summary>
     public int SessionLifetimeDays { get; set; } = 30;
+
+    /// <summary>A session ends this many days after sign-in, however often it is used.</summary>
+    public int SessionMaxAgeDays { get; set; } = 90;
 
     /// <summary>Edits within this many minutes of the last version don't create another one.</summary>
     public int VersionIntervalMinutes { get; set; } = 10;
@@ -37,6 +46,9 @@ public class NotesOptions
 
     /// <summary>Login attempts per client address and 15 minutes.</summary>
     public int LoginRateLimitMax { get; set; } = 30;
+
+    /// <summary>Failed sign-ins for one account (from any address) before it is locked for 15 minutes.</summary>
+    public int LoginMaxFailures { get; set; } = 10;
 
     /// <summary>Allow <c>https:</c> images in notes (otherwise only attachments and data URLs load).</summary>
     public bool AllowRemoteImages { get; set; }
