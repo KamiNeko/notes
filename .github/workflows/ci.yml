@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The release workflow runs the same checks before publishing
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -39,7 +41,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: dotnet restore Notes.slnx
+      - run: dotnet restore Notes.slnx --locked-mode
       # Warnings are errors (TreatWarningsAsErrors in the project files)
       - run: dotnet build Notes.slnx --no-restore
       - run: dotnet test --solution Notes.slnx --no-build
@@ -89,7 +91,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: backend/global.json
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -105,6 +107,41 @@ jobs:
       # Uses the Google Chrome preinstalled on the runner (channel "chrome"), no browser download
       - run: npm run test:e2e
         working-directory: client
+
+  dependencies:
+    name: Dependency audit (known vulnerabilities)
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/dotnet/sdk:10.0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: NuGet packages (direct and transitive)
+        working-directory: backend
+        run: |
+          dotnet restore Notes.slnx --locked-mode
+          dotnet list Notes.slnx package --vulnerable --include-transitive | tee audit.txt
+          if grep -q "has the following vulnerable packages" audit.txt; then exit 1; fi
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: npm packages (production and build)
+        working-directory: client
+        run: npm audit --audit-level=moderate
+
+  dependency-review:
+    name: Dependency review (new dependencies and licenses)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+          # Licenses that are compatible with publishing Notes under MIT
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, CC0-1.0, CC-BY-4.0, Unlicense, BlueOak-1.0.0, Python-2.0, MPL-2.0, PostgreSQL
 
   docker:
     name: Docker image
@@ -126,6 +163,14 @@ jobs:
             GIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # Known vulnerabilities in the OS packages and libraries of the runtime image
+      - uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: notes:ci
+          fail-build: true
+          severity-cutoff: high
+          only-fixed: true
+          output-format: table
       - name: Smoke test with docker compose
         run: |
           cat > .env <<'ENV'
@@ -150,4 +195,7 @@ jobs:
           curl -fsS -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' \
             -d '{"email":"admin@example.com","password":"ci-admin-password"}' | jq -e '.user.isAdmin'
           docker compose exec -T notes dotnet Notes.Api.dll users list | grep -q admin@example.com
+          # The hardening from docker-compose.yml is in effect
+          [ "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' notes)" = true ]
+          [ "$(docker compose exec -T notes id -u)" != 0 ]
           docker compose down -v
