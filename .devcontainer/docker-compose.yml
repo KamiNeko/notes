@@ -1,0 +1,35 @@
+services:
+  dev:
+    image: mcr.microsoft.com/devcontainers/dotnet:10.0
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    environment:
+      # Same database for `dotnet run` (appsettings.Development.json uses localhost) and the tests
+      ConnectionStrings__Notes: "Host=db;Port=5432;Database=notes;Username=notes;Password=notes"
+      NOTES_TEST_DATABASE: "Host=db;Port=5432;Username=notes;Password=notes"
+      E2E_DATABASE: "Host=db;Port=5432;Database=notes_e2e;Username=notes;Password=notes"
+      API_PROXY_TARGET: "http://localhost:5080"
+      # Playwright uses its own Chromium here (installed by post-create.sh)
+      E2E_CHANNEL: "chromium"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notes
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: notes
+    volumes:
+      - notes-dev-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notes -d notes"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  notes-dev-db:

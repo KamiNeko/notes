@@ -1,0 +1,51 @@
+# Notes with its own PostgreSQL. Copy .env.example to .env, fill it in, then:
+#   docker compose up -d --build
+services:
+  notes:
+    container_name: notes
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Notes: "Host=db;Port=5432;Database=notes;Username=notes;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+      # The first administrator, created on start when there are no users yet (ignored afterwards)
+      Notes__Admin__Email: ${NOTES_ADMIN_EMAIL:-}
+      Notes__Admin__Password: ${NOTES_ADMIN_PASSWORD:-}
+      # The address you open in the browser, e.g. https://notes.example.com (secure cookies, Origin check)
+      Notes__PublicUrl: ${NOTES_PUBLIC_URL:-}
+      # Set to true behind a reverse proxy (X-Forwarded-For/-Proto)
+      Notes__TrustProxy: ${NOTES_TRUST_PROXY:-false}
+      Notes__VersionRetentionDays: ${NOTES_VERSION_RETENTION_DAYS:-0}
+      Notes__MaxUploadMb: ${NOTES_MAX_UPLOAD_MB:-25}
+      Notes__AllowRemoteImages: ${NOTES_ALLOW_REMOTE_IMAGES:-false}
+    volumes:
+      # Attachments
+      - notes-files:/data
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    restart: unless-stopped
+    # Healthcheck is defined in docker/Dockerfile (GET /api/health)
+
+  db:
+    container_name: notes-db
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: notes
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - notes-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notes -d notes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    # Not published: only the notes container talks to the database
+
+volumes:
+  notes-db:
+  notes-files:

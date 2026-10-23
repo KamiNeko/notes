@@ -1,0 +1,31 @@
+{
+  // .NET 10 SDK + Node.js 24 + PostgreSQL 17. Open the folder in VS Code (Dev Containers extension,
+  // works from WSL) and choose "Reopen in Container".
+  "name": "Notes",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "24" },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [5173, 5080],
+  "portsAttributes": {
+    "5173": { "label": "Client (Vite)", "onAutoForward": "openBrowser" },
+    "5080": { "label": "API" }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "ms-playwright.playwright",
+        "ckolkman.vscode-postgres"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}
