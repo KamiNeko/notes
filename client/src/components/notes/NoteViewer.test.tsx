@@ -1,0 +1,109 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
+import { Note } from "@/lib/types";
+import { draftOwner, loadDraft, saveDraft, setDraftOwner } from "@/lib/drafts";
+import { NoteViewer } from "./NoteViewer";
+
+const note: Note = {
+  id: "0123456789abcdef0123456789abcdef",
+  title: "Shopping list",
+  body: "Server text",
+  updatedTime: 1000,
+  createdTime: 500,
+  parentId: "f".repeat(32),
+  notebookId: "f".repeat(32),
+  notebookTitle: "Personal",
+  tags: [],
+  isTodo: false,
+  todoCompleted: false,
+};
+
+function renderViewer(props: Partial<Parameters<typeof NoteViewer>[0]> = {}) {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <NoteViewer note={note} {...props} />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+}
+
+beforeEach(() => {
+  localStorage.clear();
+  setDraftOwner(draftOwner("me@example.com", "u1"));
+});
+
+afterEach(cleanup);
+
+describe("NoteViewer restore offer", () => {
+  it("blocks editing until the stored draft is restored or discarded", () => {
+    saveDraft(note.id, { title: note.title, body: "Unsaved text", baseUpdatedTime: 900 });
+    renderViewer({ startInEdit: true });
+
+    expect(screen.getByText(/stored on this device/)).toBeTruthy();
+    // Even with startInEdit, no editor opens that could overwrite the draft
+    expect(screen.queryByLabelText("Note title")).toBeNull();
+    expect((screen.getByRole("button", { name: "Edit" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("keeps the draft untouched until Discard, then allows editing", () => {
+    saveDraft(note.id, { title: note.title, body: "Unsaved text", baseUpdatedTime: 900 });
+    renderViewer();
+    expect(loadDraft(note.id)?.body).toBe("Unsaved text");
+    expect((screen.getByRole("button", { name: "Edit" }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+    expect(loadDraft(note.id)).toBeNull();
+    expect((screen.getByRole("button", { name: "Edit" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("shows no offer when there is no draft", () => {
+    renderViewer();
+    expect(screen.queryByText(/stored on this device/)).toBeNull();
+    expect((screen.getByRole("button", { name: "Edit" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+});
+
+// Regression tests for #104
+describe("NoteViewer with an HTML note", () => {
+  const htmlNote: Note = {
+    ...note,
+    markupLanguage: 2,
+    body: '<div class="clip">\n  <p>Intro</p>\n\n    <p>After blank line, indented</p>\n</div>',
+  };
+
+  it("renders the body as HTML and marks it as an HTML note", () => {
+    const { container } = renderViewer({ note: htmlNote });
+    expect(screen.getByText("HTML note")).toBeTruthy();
+    expect(screen.getByText("After blank line, indented").tagName).toBe("P");
+    expect(container.querySelector("pre")).toBeNull();
+  });
+
+  it("shows no HTML marker for Markdown notes", () => {
+    renderViewer();
+    expect(screen.queryByText("HTML note")).toBeNull();
+  });
+});
+
+describe("NoteViewer version history", () => {
+  it("offers the version history in the note menu, but not while editing", () => {
+    renderViewer();
+    fireEvent.pointerDown(screen.getByRole("button", { name: "More note actions" }), { button: 0, ctrlKey: false });
+    expect(screen.getByRole("menuitem", { name: /Version history/ })).toBeTruthy();
+  });
+});
+
+describe("NoteViewer loading", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("shows the skeleton only when the note takes a while to load", () => {
+    vi.useFakeTimers();
+    const { container } = renderViewer({ note: undefined, isLoading: true });
+    expect(container.querySelector("[aria-busy='true']")).not.toBeNull();
+    expect(container.querySelector(".animate-pulse")).toBeNull();
+    act(() => vi.advanceTimersByTime(300));
+    expect(container.querySelector(".animate-pulse")).not.toBeNull();
+  });
+});

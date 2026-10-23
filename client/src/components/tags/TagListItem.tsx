@@ -1,0 +1,102 @@
+import { useState } from "react";
+import { Hash, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Tag } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { ROW_ACTION_VISIBILITY } from "@/lib/ui-constants";
+
+interface TagListItemProps {
+  tag: Tag;
+  isSelected: boolean;
+  onSelect: () => void;
+  /** Rename and delete; without them (read-only account) the row has no actions menu */
+  onRename?: () => void;
+  onDelete?: () => void;
+}
+
+/**
+ * Sidebar row for a tag with an actions menu (rename, delete).
+ */
+export function TagListItem({ tag, isSelected, onSelect, onRename, onDelete }: TagListItemProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const hasActions = Boolean(onRename && onDelete);
+
+  return (
+    // The row is only a container: the label and the menu are sibling buttons, so no control is
+    // nested in another. Clicking the row's padding still selects the tag.
+    <div
+      onClick={onSelect}
+      className={cn(
+        "group w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-sm transition-all duration-150 cursor-pointer has-[.row-label:focus-visible]:ring-1 has-[.row-label:focus-visible]:ring-ring",
+        isSelected
+          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+          : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+      )}
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect();
+        }}
+        aria-current={isSelected ? "page" : undefined}
+        className="row-label flex items-center gap-2 min-w-0 flex-1 mr-2 text-left outline-hidden"
+      >
+        <Hash className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
+        <span className="truncate">{tag.title}</span>
+        <span className="sr-only">
+          , {tag.noteCount} {tag.noteCount === 1 ? "note" : "notes"}
+        </span>
+      </button>
+
+      <div className="flex items-center gap-1 shrink-0">
+        {hasActions && (
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Actions for tag ${tag.title}`}
+                className={cn(
+                  "p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted",
+                  menuOpen ? "opacity-100" : ROW_ACTION_VISIBILITY
+                )}
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-44" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={onRename}>
+                <Pencil className="h-4 w-4" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                <Trash2 className="h-4 w-4" />
+                Delete tag
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        <Badge
+          variant="secondary"
+          aria-hidden="true"
+          className={cn(
+            "px-1.5 py-0 text-[10px] font-mono h-4 min-w-[18px] flex items-center justify-center",
+            isSelected ? "bg-primary/15 text-foreground border-primary/30" : "bg-muted text-muted-foreground"
+          )}
+        >
+          <span className="[text-box:trim-both_cap_alphabetic]">{tag.noteCount}</span>
+        </Badge>
+      </div>
+    </div>
+  );
+}
