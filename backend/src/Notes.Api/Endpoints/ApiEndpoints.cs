@@ -55,8 +55,13 @@ public static class ApiEndpoints
         });
         MapResources(authed.MapGroup("/resources"));
         // All of the user's notes as a ZIP of Markdown files (CRA: users can take their data elsewhere)
-        authed.MapGet("/export", async (ClaimsPrincipal user, ExportService export, TimeProvider clock, CancellationToken ct) =>
-            Results.Stream(await export.CreateAsync(user.UserId(), ct), "application/zip", $"notes-export-{clock.GetUtcNow():yyyy-MM-dd}.zip"));
+        authed.MapGet("/export", async (HttpContext context, ClaimsPrincipal user, ExportService export, TimeProvider clock, ILoggerFactory loggers, CancellationToken ct) =>
+        {
+            var zip = await export.CreateAsync(user.UserId(), ct);
+            // Everything an account holds in one download: the first thing to look for after a stolen session
+            SecurityLog.DataExported(loggers.CreateLogger(SecurityLog.Category), Ids.Format(user.UserId()), SecurityLog.Client(context));
+            return Results.Stream(zip, "application/zip", $"notes-export-{clock.GetUtcNow():yyyy-MM-dd}.zip");
+        });
         MapAdmin(api.MapGroup("/admin").RequireAuthorization(SessionClaims.AdminPolicy));
     }
 
