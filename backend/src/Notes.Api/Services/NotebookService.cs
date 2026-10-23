@@ -180,25 +180,39 @@ public class NotebookService(NotesDbContext db, TimeProvider clock)
             if (current.DeletedTime != stamp || !restored.Add(current.Id)) continue;
             foreach (var child in childrenOf[current.Id]) stack.Push(child);
         }
-        var parentsById = all.ToDictionary(n => n.Id);
-        var ancestors = new List<Guid>();
-        for (var cursor = notebook.ParentId; cursor is { } parentId && parentsById.TryGetValue(parentId, out var parent); cursor = parent.ParentId)
-        {
-            if (parent.DeletedTime != null) ancestors.Add(parent.Id);
-        }
-
         var now = Times.Now(clock);
-        foreach (var nb in all.Where(n => restored.Contains(n.Id) || ancestors.Contains(n.Id)))
+        foreach (var nb in all.Where(n => restored.Contains(n.Id)))
         {
             nb.DeletedTime = null;
             nb.UpdatedTime = now;
         }
+        var ancestors = RestoreAncestors(all, notebook.ParentId, now);
         var notes = await db.Notes
             .Where(n => n.UserId == userId && restored.Contains(n.NotebookId) && n.DeletedTime == stamp)
             .ToListAsync(ct);
         foreach (var note in notes) note.DeletedTime = null;
         await db.SaveChangesAsync(ct);
-        return new CountsDto(restored.Count + ancestors.Count, notes.Count);
+        return new CountsDto(restored.Count + ancestors, notes.Count);
+    }
+
+    /// <summary>
+    /// Restores the trashed notebooks on the way from <paramref name="notebookId"/> up to the top level
+    /// (tracked entities of the user, saved by the caller), so restored items show up in the tree again.
+    /// Returns how many were restored.
+    /// </summary>
+    internal static int RestoreAncestors(IEnumerable<Notebook> userNotebooks, Guid? notebookId, DateTimeOffset now)
+    {
+        var byId = userNotebooks.ToDictionary(n => n.Id);
+        var seen = new HashSet<Guid>();
+        var restored = 0;
+        for (var cursor = notebookId; cursor is { } id && seen.Add(id) && byId.TryGetValue(id, out var notebook); cursor = notebook.ParentId)
+        {
+            if (notebook.DeletedTime is null) continue;
+            notebook.DeletedTime = null;
+            notebook.UpdatedTime = now;
+            restored++;
+        }
+        return restored;
     }
 
     /// <summary>Permanently deletes a trashed notebook with everything below it, including notes trashed earlier.</summary>

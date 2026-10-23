@@ -167,15 +167,8 @@ public class NoteService(NotesDbContext db, TimeProvider clock, NotebookService 
     public async Task<NoteDto> RestoreAsync(Guid userId, string id, CancellationToken ct = default)
     {
         var note = await FindAsync(userId, id, ct);
-        var all = await db.Notebooks.Where(n => n.UserId == userId).ToDictionaryAsync(n => n.Id, ct);
-        var now = Times.Now(clock);
-        var seen = new HashSet<Guid>();
-        for (Guid? cursor = note.NotebookId; cursor is { } nbId && seen.Add(nbId) && all.TryGetValue(nbId, out var notebook); cursor = notebook.ParentId)
-        {
-            if (notebook.DeletedTime is null) continue;
-            notebook.DeletedTime = null;
-            notebook.UpdatedTime = now;
-        }
+        var all = await db.Notebooks.Where(n => n.UserId == userId).ToListAsync(ct);
+        NotebookService.RestoreAncestors(all, note.NotebookId, Times.Now(clock));
         note.DeletedTime = null;
         await db.SaveChangesAsync(ct);
         return (await DetailAsync(userId, note.Id, ct))!;
