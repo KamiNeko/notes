@@ -44,7 +44,9 @@ public class ExportTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         Assert.Equal(
             ["Personal/Buy miso.md", "Personal/Recipes_ Asian/Ramen (2).md", "Personal/Recipes_ Asian/Ramen.md", "_resources/bowl.png"],
             zip.Entries.Select(e => e.FullName).Order(StringComparer.Ordinal));
-        var markdown = Read("Personal/Recipes_ Asian/Ramen.md");
+        // Both notes are called "Ramen"; which one gets the plain name depends on creation order
+        var markdown = new[] { "Personal/Recipes_ Asian/Ramen.md", "Personal/Recipes_ Asian/Ramen (2).md" }
+            .Select(Read).Single(m => m.Contains("![Bowl]"));
         Assert.StartsWith("---\ntitle: \"Ramen\"\n", markdown);
         Assert.Contains("tags:\n  - \"cooking\"\n", markdown);
         Assert.Contains("![Bowl](../../_resources/bowl.png)", markdown);

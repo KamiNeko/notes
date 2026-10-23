@@ -56,7 +56,7 @@ public partial class ExportService(NotesDbContext db, ResourceService resources,
         var notes = await db.Notes.AsNoTracking()
             .Where(n => n.UserId == userId && n.DeletedTime == null)
             .Include(n => n.NoteTags).ThenInclude(nt => nt.Tag)
-            .OrderBy(n => n.Title).ThenBy(n => n.CreatedTime)
+            .OrderBy(n => n.Title).ThenBy(n => n.CreatedTime).ThenBy(n => n.Id)
             .ToListAsync(ct);
         var attachments = await db.Resources.AsNoTracking().Where(r => r.UserId == userId).OrderBy(r => r.CreatedTime).ToListAsync(ct);
 
@@ -66,7 +66,7 @@ public partial class ExportService(NotesDbContext db, ResourceService resources,
         foreach (var group in notebooks.GroupBy(n => n.ParentId))
         {
             var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "_resources" };
-            foreach (var notebook in group.OrderBy(n => n.Title).ThenBy(n => n.CreatedTime))
+            foreach (var notebook in group.OrderBy(n => n.Title).ThenBy(n => n.CreatedTime).ThenBy(n => n.Id))
             {
                 folderNames[notebook.Id] = Unique(SafeName(notebook.Title, "Notebook"), "", taken);
             }
