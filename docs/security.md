@@ -66,7 +66,7 @@ Security events are logged under the category `Notes.Security` with stable event
 | 1040 | The demo account exists | Warning |
 | 1050 | User downloaded the export of all their notes | Information |
 
-Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limit"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
+Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limit\|exported"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
 
 ## Data protection
 
