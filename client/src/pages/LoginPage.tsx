@@ -1,0 +1,43 @@
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
+
+export function LoginPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Return to the page the user was on (e.g. the open note after an expired session)
+  const fromPath = (location.state as { from?: { pathname?: unknown } } | null)?.from?.pathname;
+  const target =
+    typeof fromPath === "string" && /^\/(notes|notebooks|trash)(\/|$)/.test(fromPath) ? fromPath : "/notes";
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate(target, { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate, target]);
+
+  return (
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4 overflow-hidden bg-background">
+      {/* Background radial glow effects */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-primary/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+
+      {/* Top right theme toggle */}
+      <div className="absolute top-5 right-5 z-20">
+        <ThemeToggle className="bg-card/40 backdrop-blur-xs border border-border/40" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md animate-in fade-in-50 zoom-in-95 duration-300">
+        <LoginForm onSuccess={() => navigate(target, { replace: true })} />
+      </div>
+
+      {/* Subtle footer */}
+      <div className="absolute bottom-4 text-xs text-muted-foreground text-center w-full select-none">
+        Notes &bull; Self-hosted Markdown notes
+      </div>
+    </div>
+  );
+}

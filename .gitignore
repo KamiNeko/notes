@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+bin/
+obj/
+*.tsbuildinfo
+
+# .NET
+*.user
+*.suo
+.vs/
+TestResults/
+
+# Local data (attachments when running the backend outside Docker)
+backend/src/Notes.Api/data/
+
+# Environment variables & local secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+test-results/
+playwright-report/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Caches
+.vite/
+.cache/
+.eslintcache
+
+# Docker
+docker-compose.override.yml
