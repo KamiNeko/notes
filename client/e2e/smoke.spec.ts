@@ -167,6 +167,18 @@ test("attaches a file to a note", async ({ page }) => {
   expect(await readFile(await (await download).path(), "utf8")).toBe("hello from the smoke test");
 });
 
+test("exports all notes as a ZIP of Markdown files", async ({ page }) => {
+  await signIn(page);
+  await page.getByRole("button", { name: "User account menu" }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("menuitem", { name: "Export notes" }).click();
+  expect((await download).suggestedFilename()).toMatch(/^notes-export-\d{4}-\d{2}-\d{2}\.zip$/);
+  // File names in a ZIP's directory are stored uncompressed
+  const zip = await readFile(await (await download).path());
+  expect(zip.subarray(0, 2).toString()).toBe("PK");
+  expect(zip.includes("Website Relaunch Roadmap.md")).toBe(true);
+});
+
 test("navigates on a phone between menu, list and note @phone", async ({ page }) => {
   await signIn(page);
 

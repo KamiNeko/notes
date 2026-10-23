@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { SEARCH_SYNTAX_HINT } from "@/lib/ui-constants";
+import { getExportUrl } from "@/lib/api";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { AboutDialog } from "@/components/common/Dialogs";
 import { ChangePasswordDialog } from "@/components/account/ChangePasswordDialog";
@@ -17,6 +18,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   ChevronRight,
+  Download,
   Folder,
   Info,
   KeyRound,
@@ -207,6 +209,13 @@ export function Header({
             <DropdownMenuItem onClick={() => setPasswordOpen(true)} className="cursor-pointer flex items-center gap-2">
               <KeyRound className="h-3.5 w-3.5" />
               <span>Change password</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="cursor-pointer flex items-center gap-2">
+              {/* A plain download: the browser sends the session cookie and saves the ZIP */}
+              <a href={getExportUrl()} download>
+                <Download className="h-3.5 w-3.5" />
+                <span>Export notes</span>
+              </a>
             </DropdownMenuItem>
             {user?.isAdmin && (
               <DropdownMenuItem onClick={() => setUsersOpen(true)} className="cursor-pointer flex items-center gap-2">
