@@ -1,5 +1,15 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Notes.Api.Auth;
+using Notes.Api.Data;
+using Notes.Api.Infrastructure;
+using Notes.Api.Services;
 
 namespace Notes.Api.Tests;
 
@@ -101,5 +111,37 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         var custom = Infrastructure.TrustedProxies.Parse("203.0.113.7, 2001:db8::/32");
         Assert.Contains(custom, n => n.Contains(IPAddress.Parse("203.0.113.7")));
         Assert.Throws<InvalidOperationException>(() => Infrastructure.TrustedProxies.Parse("not-an-address"));
+    }
+
+    [Fact]
+    public async Task A_password_change_that_fails_to_save_keeps_the_sessions()
+    {
+        using var user = await app.NewUserClientAsync();
+        var id = Ids.Parse((await user.GetJsonAsync("/api/auth/check")).GetProperty("user").Str("id"), "user id");
+        var services = app.Services;
+        var options = new DbContextOptionsBuilder<NotesDbContext>()
+            .UseNpgsql(app.ConnectionString).UseSnakeCaseNamingConvention().AddInterceptors(new FailingSaves()).Options;
+        // A fresh context each time: a failed save leaves the new hash on the tracked user
+        async Task FailingAsync(Func<UserService, Task> change)
+        {
+            await using var db = new NotesDbContext(options);
+            var users = new UserService(db, app.Clock, services.GetRequiredService<IPasswordHasher<User>>(),
+                new ResourceService(db, app.Clock, services.GetRequiredService<IOptions<NotesOptions>>()), services.GetRequiredService<ILoggerFactory>());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => change(users));
+        }
+
+        await FailingAsync(users => users.UpdateAsync("test", id, "a-new-password", null, null));
+        await FailingAsync(users => users.ChangeOwnPasswordAsync(id, Guid.Empty, "user-password", "a-new-password"));
+
+        // Neither the admin reset nor the own change ended the session without changing the password
+        Assert.Equal(HttpStatusCode.OK, (await user.GetAsync("/api/auth/check")).StatusCode);
+        using var again = await app.SignInAsync((await user.GetJsonAsync("/api/auth/check")).GetProperty("user").Str("email"), "user-password");
+    }
+
+    /// <summary>Fails every save, like a database that goes away mid-request.</summary>
+    private sealed class FailingSaves : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken ct = default) =>
+            throw new InvalidOperationException("Simulated database failure");
     }
 }
