@@ -62,6 +62,13 @@ public class ResourceService(NotesDbContext db, TimeProvider clock, IOptions<Not
         return new ResourceDto(Ids.Format(resource.Id), resource.FileName, resource.MimeType, resource.Size);
     }
 
+    /// <summary>The stored file of an attachment, or null when it is missing (for the export).</summary>
+    internal Stream? TryOpenFile(Guid userId, Guid resourceId)
+    {
+        var path = FilePath(userId, resourceId);
+        return File.Exists(path) ? File.OpenRead(path) : null;
+    }
+
     /// <summary>An attachment's metadata and an open stream of its file, or 404.</summary>
     public async Task<(Resource Resource, Stream Content)> OpenAsync(Guid userId, string id, CancellationToken ct = default)
     {

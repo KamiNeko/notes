@@ -26,7 +26,10 @@ public static class RateLimits
                 RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => Limit(options.LoginRateLimitMax)));
             limiter.OnRejected = async (context, ct) =>
             {
-                var response = context.HttpContext.Response;
+                var http = context.HttpContext;
+                SecurityLog.RateLimited(http.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(SecurityLog.Category),
+                    ClientKey(http), http.Request.Method, http.Request.Path);
+                var response = http.Response;
                 response.StatusCode = StatusCodes.Status429TooManyRequests;
                 if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
                 {

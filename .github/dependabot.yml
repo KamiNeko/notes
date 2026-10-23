@@ -1,0 +1,43 @@
+# Security and version updates for every dependency source (CRA: keep components free of known vulnerabilities).
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /backend
+    schedule: { interval: weekly }
+    groups:
+      dotnet:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /client
+    schedule: { interval: weekly }
+    groups:
+      client:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Base images in docker/Dockerfile (pinned by digest)
+  - package-ecosystem: docker
+    directory: /docker
+    schedule: { interval: weekly }
+
+  # postgres image in docker-compose.yml (pinned by digest)
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule: { interval: weekly }
+    ignore:
+      # A new PostgreSQL major needs a dump and restore; upgrade deliberately
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: devcontainers
+    directory: /
+    schedule: { interval: weekly }

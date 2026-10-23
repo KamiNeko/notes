@@ -25,7 +25,10 @@ var connectionString = builder.Configuration.GetConnectionString("Notes")
 builder.Services.AddDbContext<NotesDbContext>(options => options.UseNpgsql(connectionString).UseSnakeCaseNamingConvention());
 
 builder.Services.AddSingleton(TimeProvider.System);
+// PBKDF2-HMAC-SHA512 with OWASP's recommended work factor; older hashes are upgraded on the next sign-in
+builder.Services.Configure<PasswordHasherOptions>(options => options.IterationCount = 210_000);
 builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddSingleton<SessionCookies>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<UserService>();
@@ -35,6 +38,7 @@ builder.Services.AddScoped<VersionService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<SearchService>();
 builder.Services.AddScoped<ResourceService>();
+builder.Services.AddScoped<ExportService>();
 builder.Services.AddHostedService<VersionPruning>();
 
 builder.Services.AddAuthentication(SessionClaims.Scheme)
@@ -50,15 +54,20 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 // Malformed bodies become BadHttpRequestException, which the error middleware answers as JSON
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
-builder.WebHost.ConfigureKestrel(kestrel => kestrel.Limits.MaxRequestBodySize = (long)Math.Max(1, notesOptions.MaxUploadMb) * 1024 * 1024);
+builder.WebHost.ConfigureKestrel(kestrel =>
+{
+    kestrel.AddServerHeader = false;
+    kestrel.Limits.MaxRequestBodySize = (long)Math.Max(1, notesOptions.MaxUploadMb) * 1024 * 1024;
+});
 if (notesOptions.TrustProxy)
 {
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
-        // The proxy runs on another host/container whose address isn't known up front
+        // Forwarded headers are only believed from the proxy's addresses; anyone else could fake their client address
         options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
+        foreach (var network in TrustedProxies.Parse(notesOptions.TrustedProxies)) options.KnownIPNetworks.Add(network);
     });
 }
 
@@ -74,7 +83,12 @@ await using (var scope = app.Services.CreateAsyncScope())
     var services = scope.ServiceProvider;
     await services.GetRequiredService<NotesDbContext>().Database.MigrateAsync();
     await Bootstrap.CreateFirstAdminAsync(services, app.Logger);
-    if (notesOptions.SeedDemo) await DemoSeeder.SeedAsync(services);
+    ExportService.DeleteLeftovers(notesOptions);
+    if (notesOptions.SeedDemo)
+    {
+        await DemoSeeder.SeedAsync(services);
+        SecurityLog.DemoAccountPresent(app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(SecurityLog.Category), DemoSeeder.Email);
+    }
 }
 
 if (notesOptions.TrustProxy) app.UseForwardedHeaders();
@@ -125,7 +139,7 @@ internal static class Bootstrap
             logger.LogWarning("There are no users yet. Set Notes__Admin__Email and Notes__Admin__Password to create the first administrator.");
             return;
         }
-        await services.GetRequiredService<UserService>().CreateAsync(admin.Email, admin.Password, "Admin", isAdmin: true);
+        await services.GetRequiredService<UserService>().CreateAsync("startup (Notes__Admin)", admin.Email, admin.Password, "Admin", isAdmin: true);
         logger.LogInformation("Created the administrator {Email}", UserService.NormalizeEmail(admin.Email));
     }
 }

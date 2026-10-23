@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- packages.lock.json pins every direct and transitive package (reproducible builds, SBOMs, Dependabot) -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Fail the restore on packages with known vulnerabilities (NuGet audit, including transitive ones) -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+  </PropertyGroup>
+</Project>

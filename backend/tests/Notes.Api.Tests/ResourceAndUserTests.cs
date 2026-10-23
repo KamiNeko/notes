@@ -80,23 +80,23 @@ public class ResourceAndUserTests(NotesApiFactory app) : IClassFixture<NotesApiF
     {
         var user = await app.NewUserClientAsync();
         Assert.Equal(HttpStatusCode.Forbidden, (await user.GetAsync("/api/admin/users")).StatusCode);
-        await user.PostJsonAsync("/api/admin/users", new { email = "x@notes.test", password = "password1" }, HttpStatusCode.Forbidden);
+        await user.PostJsonAsync("/api/admin/users", new { email = "x@notes.test", password = "first-password" }, HttpStatusCode.Forbidden);
 
         var admin = await app.AdminClientAsync();
         var email = $"new-{Guid.NewGuid():N}@notes.test";
-        var created = await admin.PostJsonAsync("/api/admin/users", new { email = email.ToUpperInvariant(), password = "password1", displayName = "New" }, HttpStatusCode.Created);
+        var created = await admin.PostJsonAsync("/api/admin/users", new { email = email.ToUpperInvariant(), password = "first-password", displayName = "New" }, HttpStatusCode.Created);
         Assert.Equal(email, created.Str("email"));
         Assert.False(created.GetProperty("isAdmin").GetBoolean());
-        await admin.PostJsonAsync("/api/admin/users", new { email, password = "password1" }, HttpStatusCode.Conflict);
-        await admin.PostJsonAsync("/api/admin/users", new { email = "bad", password = "password1" }, HttpStatusCode.BadRequest);
+        await admin.PostJsonAsync("/api/admin/users", new { email, password = "first-password" }, HttpStatusCode.Conflict);
+        await admin.PostJsonAsync("/api/admin/users", new { email = "bad", password = "first-password" }, HttpStatusCode.BadRequest);
         await admin.PostJsonAsync("/api/admin/users", new { email = "short@notes.test", password = "short" }, HttpStatusCode.BadRequest);
         Assert.Contains(email, (await admin.GetJsonAsync("/api/admin/users")).EnumerateArray().Select(u => u.Str("email")));
 
         // A password reset ends the user's sessions
-        var session = await app.SignInAsync(email, "password1");
-        await admin.PutJsonAsync($"/api/admin/users/{created.Str("id")}", new { password = "password2" });
+        var session = await app.SignInAsync(email, "first-password");
+        await admin.PutJsonAsync($"/api/admin/users/{created.Str("id")}", new { password = "second-password" });
         Assert.Equal(HttpStatusCode.Unauthorized, (await session.GetAsync("/api/auth/check")).StatusCode);
-        await app.SignInAsync(email, "password2");
+        await app.SignInAsync(email, "second-password");
     }
 
     [Fact]

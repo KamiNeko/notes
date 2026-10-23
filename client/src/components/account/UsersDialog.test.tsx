@@ -37,12 +37,12 @@ describe("UsersDialog", () => {
     expect(await within(form).findByRole("alert")).toBeTruthy();
     expect(calls.some((c) => c.method === "POST")).toBe(false);
 
-    fireEvent.change(within(form).getByLabelText("Password"), { target: { value: "long-enough" } });
+    fireEvent.change(within(form).getByLabelText("Password"), { target: { value: "long-enough-password" } });
     fireEvent.click(within(form).getByRole("button", { name: "Add user" }));
     expect(await within(list).findByText("new@example.com")).toBeTruthy();
     expect(calls.find((c) => c.method === "POST")?.body).toEqual({
       email: "new@example.com",
-      password: "long-enough",
+      password: "long-enough-password",
       isAdmin: false,
     });
   });
@@ -56,7 +56,7 @@ describe("UsersDialog", () => {
     renderWithProviders(<UsersDialog open onOpenChange={() => undefined} />);
     const form = screen.getByRole("form", { name: "Add user" });
     fireEvent.change(within(form).getByLabelText("Email"), { target: { value: "admin@example.com" } });
-    fireEvent.change(within(form).getByLabelText("Password"), { target: { value: "long-enough" } });
+    fireEvent.change(within(form).getByLabelText("Password"), { target: { value: "long-enough-password" } });
     fireEvent.click(within(form).getByRole("button", { name: "Add user" }));
     await waitFor(() => expect(within(form).getByRole("alert").textContent).toContain("already exists"));
   });

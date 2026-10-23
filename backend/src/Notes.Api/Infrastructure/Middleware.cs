@@ -41,7 +41,7 @@ public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandling
 /// <see cref="NotesOptions.PublicUrl"/>). Requests without <c>Origin</c> (non-browser clients) pass
 /// only when they don't carry the session cookie.
 /// </summary>
-public class OriginCheckMiddleware(RequestDelegate next, IOptions<NotesOptions> options)
+public class OriginCheckMiddleware(RequestDelegate next, IOptions<NotesOptions> options, ILoggerFactory loggers)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -54,6 +54,7 @@ public class OriginCheckMiddleware(RequestDelegate next, IOptions<NotesOptions> 
                 : IsAllowed(origin, request);
             if (!allowed)
             {
+                SecurityLog.OriginRejected(loggers.CreateLogger(SecurityLog.Category), request.Method, request.Path, SecurityLog.Client(context), origin.Length == 0 ? "(none)" : origin);
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsJsonAsync(new { error = "Request origin not allowed", status = 403 });
                 return;
@@ -76,6 +77,8 @@ public class OriginCheckMiddleware(RequestDelegate next, IOptions<NotesOptions> 
 /// <summary>
 /// Security headers for every response. <c>script-src</c> must stay <c>'self'</c>: attachment
 /// <c>blob:</c> URLs opened directly run in the app's origin, and the CSP keeps their scripts from running.
+/// HSTS is sent over HTTPS only (behind a proxy that needs <see cref="NotesOptions.TrustProxy"/>), and
+/// API answers are <c>no-store</c> so notes don't stay in the cache of a shared computer.
 /// </summary>
 public class SecurityHeadersMiddleware(RequestDelegate next, IOptions<NotesOptions> options)
 {
@@ -94,6 +97,10 @@ public class SecurityHeadersMiddleware(RequestDelegate next, IOptions<NotesOptio
         headers["Referrer-Policy"] = "no-referrer";
         headers["Cross-Origin-Opener-Policy"] = "same-origin";
         headers["Cross-Origin-Resource-Policy"] = "same-origin";
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()";
+        if (context.Request.IsHttps) headers.StrictTransportSecurity = "max-age=31536000";
+        // Endpoints that may be cached (attachments) replace this
+        if (context.Request.Path.StartsWithSegments("/api")) headers.CacheControl = "no-store";
         return next(context);
     }
 }

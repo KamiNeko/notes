@@ -342,6 +342,13 @@ export async function searchNotes(query: string): Promise<SearchResult[]> {
 }
 
 /**
+ * URL of the export: all of the user's notes as a ZIP of Markdown files with their attachments.
+ */
+export function getExportUrl(): string {
+  return `${API_BASE_URL}/api/export`;
+}
+
+/**
  * Generates the URL for accessing an attachment (images, files).
  */
 export function getResourceUrl(resourceId: string): string {

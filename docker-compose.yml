@@ -3,6 +3,9 @@
 services:
   notes:
     container_name: notes
+    # Builds from this checkout. To use a published image instead, comment out `build:` and
+    # uncomment `image:` (pin a version, not `latest`).
+    # image: ghcr.io/kamineko/notes:0.2.0
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -16,8 +19,9 @@ services:
       Notes__Admin__Password: ${NOTES_ADMIN_PASSWORD:-}
       # The address you open in the browser, e.g. https://notes.example.com (secure cookies, Origin check)
       Notes__PublicUrl: ${NOTES_PUBLIC_URL:-}
-      # Set to true behind a reverse proxy (X-Forwarded-For/-Proto)
+      # Set to true behind a reverse proxy (X-Forwarded-For/-Proto/-Host), and list where it connects from
       Notes__TrustProxy: ${NOTES_TRUST_PROXY:-false}
+      Notes__TrustedProxies: ${NOTES_TRUSTED_PROXIES:-}
       Notes__VersionRetentionDays: ${NOTES_VERSION_RETENTION_DAYS:-0}
       Notes__MaxUploadMb: ${NOTES_MAX_UPLOAD_MB:-25}
       Notes__AllowRemoteImages: ${NOTES_ALLOW_REMOTE_IMAGES:-false}
@@ -27,11 +31,20 @@ services:
     ports:
       - "${HOST_PORT:-8080}:8080"
     restart: unless-stopped
+    # Hardening: read-only filesystem (only the attachments volume and a small /tmp are writable),
+    # no Linux capabilities, no privilege escalation
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     # Healthcheck is defined in docker/Dockerfile (GET /api/health)
 
   db:
     container_name: notes-db
-    image: postgres:17-alpine
+    # Pinned by digest; Dependabot proposes updates. Stay on major 17: a new major needs a dump and restore.
+    image: postgres:17-alpine@sha256:eee6c6e1b0894fa4fe0075eb054af9fd1cf39a35321c2d4110626cfe506411fb
     environment:
       POSTGRES_DB: notes
       POSTGRES_USER: notes
@@ -44,6 +57,8 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     # Not published: only the notes container talks to the database
 
 volumes:

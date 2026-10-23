@@ -7,9 +7,15 @@ using Notes.Api.Services;
 namespace Notes.Api.Auth;
 
 /// <summary>Accounts: creation by an administrator, passwords, deletion.</summary>
-public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<User> hasher, ResourceService resources)
+public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<User> hasher, ResourceService resources, ILoggerFactory loggers)
 {
-    public const int MinPasswordLength = 8;
+    /// <summary>NIST SP 800-63B: length matters most, no composition rules.</summary>
+    public const int MinPasswordLength = 12;
+
+    /// <summary>Longer input is refused before hashing, so huge passwords can't tie up the CPU.</summary>
+    public const int MaxPasswordLength = 1024;
+
+    private readonly ILogger log = loggers.CreateLogger(SecurityLog.Category);
 
     /// <summary>Normalizes an email address for storage and lookup.</summary>
     public static string NormalizeEmail(string? email) => (email ?? "").Trim().ToLowerInvariant();
@@ -17,6 +23,7 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
     /// <summary>The user with these credentials, or null. Takes about as long for unknown emails as for wrong passwords.</summary>
     public async Task<User?> VerifyCredentialsAsync(string email, string password, CancellationToken ct = default)
     {
+        if (password.Length > MaxPasswordLength) return null;
         var normalized = NormalizeEmail(email);
         var user = await db.Users.FirstOrDefaultAsync(u => u.Email == normalized, ct);
         if (user is null)
@@ -43,8 +50,8 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
     public async Task<User?> FindAsync(Guid id, CancellationToken ct = default) =>
         await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
 
-    /// <summary>Creates an account; 409 when the email is taken.</summary>
-    public async Task<UserDto> CreateAsync(string email, string password, string? displayName, bool isAdmin, CancellationToken ct = default)
+    /// <summary>Creates an account; 409 when the email is taken. <paramref name="actor"/> names who did it, for the security log.</summary>
+    public async Task<UserDto> CreateAsync(string actor, string email, string password, string? displayName, bool isAdmin, CancellationToken ct = default)
     {
         var normalized = NormalizeEmail(email);
         if (normalized.Length is 0 or > 320 || !normalized.Contains('@')) throw ApiException.BadRequest("A valid email address is required");
@@ -63,6 +70,7 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
         user.PasswordHash = hasher.HashPassword(user, password);
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
+        SecurityLog.UserCreated(log, actor, user.Email, isAdmin);
         return ToDto(user);
     }
 
@@ -70,7 +78,7 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
     /// Changes an account (administrators). A new password signs the user out everywhere. The last
     /// administrator can't lose the role.
     /// </summary>
-    public async Task<UserDto> UpdateAsync(Guid id, string? password, string? displayName, bool? isAdmin, CancellationToken ct = default)
+    public async Task<UserDto> UpdateAsync(string actor, Guid id, string? password, string? displayName, bool? isAdmin, CancellationToken ct = default)
     {
         var user = await FindAsync(id, ct) ?? throw ApiException.NotFound("User not found");
         if (displayName is not null) user.DisplayName = Titles.Clean(displayName);
@@ -81,12 +89,14 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
                 throw ApiException.Conflict("There must be at least one administrator");
             }
             user.IsAdmin = admin;
+            SecurityLog.RoleChanged(log, actor, user.Email, admin);
         }
         if (password is not null)
         {
             ValidatePassword(password);
             user.PasswordHash = hasher.HashPassword(user, password);
             await db.Sessions.Where(s => s.UserId == id).ExecuteDeleteAsync(ct);
+            SecurityLog.PasswordReset(log, actor, user.Email);
         }
         user.UpdatedTime = Times.Now(clock);
         await db.SaveChangesAsync(ct);
@@ -97,7 +107,7 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
     public async Task ChangeOwnPasswordAsync(Guid id, Guid currentSessionId, string currentPassword, string newPassword, CancellationToken ct = default)
     {
         var user = await FindAsync(id, ct) ?? throw ApiException.NotFound("User not found");
-        if (hasher.VerifyHashedPassword(user, user.PasswordHash, currentPassword) == PasswordVerificationResult.Failed)
+        if (currentPassword.Length > MaxPasswordLength || hasher.VerifyHashedPassword(user, user.PasswordHash, currentPassword) == PasswordVerificationResult.Failed)
         {
             throw ApiException.BadRequest("The current password is wrong");
         }
@@ -109,7 +119,7 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
     }
 
     /// <summary>Deletes an account with all its notes, notebooks, tags, versions and attachments.</summary>
-    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+    public async Task DeleteAsync(string actor, Guid id, CancellationToken ct = default)
     {
         var user = await FindAsync(id, ct) ?? throw ApiException.NotFound("User not found");
         if (user.IsAdmin && !await db.Users.AnyAsync(u => u.IsAdmin && u.Id != id, ct))
@@ -119,6 +129,7 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
         db.Users.Remove(user);
         await db.SaveChangesAsync(ct);
         resources.DeleteAllFiles(id);
+        SecurityLog.UserDeleted(log, actor, user.Email);
     }
 
     private static void ValidatePassword(string? password)
@@ -126,6 +137,10 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
         if (password is null || password.Length < MinPasswordLength)
         {
             throw ApiException.BadRequest($"The password must have at least {MinPasswordLength} characters");
+        }
+        if (password.Length > MaxPasswordLength)
+        {
+            throw ApiException.BadRequest($"The password can have at most {MaxPasswordLength} characters");
         }
     }
 
