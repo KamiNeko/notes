@@ -1,0 +1,43 @@
+# Changelog
+
+All notable changes to Notes. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org). Security fixes are marked **Security** and also published as [GitHub Security Advisories](https://github.com/KamiNeko/notes/security/advisories).
+
+## [Unreleased]
+
+### Added
+
+- **Export:** every user can download all their notes as a ZIP of Markdown files with YAML front matter (compatible with Joplin's Markdown + front matter import), organized in notebook folders, with their attachments and working relative links (account menu > *Export notes*, `GET /api/export`).
+- **Security log:** sign-ins, failed sign-ins, account locks, sign-outs, password and account changes, refused cross-origin requests and rate limit hits are logged under `Notes.Security` with stable event ids.
+- `Notes__TrustedProxies`: the addresses a reverse proxy may connect from (defaults to private networks).
+- Release workflow: multi-arch images on GHCR with signed build provenance, SBOM attestations and CycloneDX SBOMs attached to each GitHub release.
+- CodeQL, OpenSSF Scorecard, dependency review, NuGet and npm audit and a container image scan in CI; Dependabot for all dependency ecosystems.
+- Documentation: [security policy](SECURITY.md), [security guide](docs/security.md), [deployment guide](docs/deployment.md), [CRA compliance](docs/cra.md) and the architecture documentation in [arc42](docs/architecture/README.md) form.
+
+### Changed
+
+- **Breaking:** passwords need at least **12 characters** (was 8) and at most 1024. Existing passwords keep working; the rule applies the next time a password is set.
+- Passwords are hashed with 210,000 PBKDF2 iterations (was 100,000). Existing hashes are upgraded on the next sign-in.
+- Sessions end at the latest 90 days after sign-in, even when in use (`Notes__SessionMaxAgeDays`).
+- `docker-compose.yml` runs the app with a read-only filesystem, without Linux capabilities and with `no-new-privileges`. Base images are pinned by digest, GitHub Actions by commit, NuGet packages by lock file.
+
+### Security
+
+- An account is locked for 15 minutes after 10 failed sign-ins, from any address (`Notes__LoginMaxFailures`).
+- Forwarded headers are only accepted from trusted proxy addresses.
+- New response headers: `Strict-Transport-Security` over HTTPS, `Permissions-Policy`, `Cache-Control: no-store` for API responses; the `Server` header is no longer sent.
+- Overlong passwords are refused before hashing.
+
+## [0.1.0] - 2026-10-23
+
+First release.
+
+### Added
+
+- Notebooks (nested), notes and to-dos with due dates, tags, trash, version history with restore, full-text search with filters, image and file attachments, conflict detection.
+- Markdown editor with Edit, Split and Preview modes and Joplin's Markdown extensions (math, Mermaid, highlight, insert, sub- and superscript); sanitized HTML notes.
+- Accounts created by an administrator, user management in the app and on the command line, per-user data isolation.
+- Server-side sessions with `HttpOnly`, `SameSite=Strict` cookies, Origin check, Content Security Policy, rate limits.
+- Docker image, Docker Compose stack with PostgreSQL 17, dev container, CI.
+
+[Unreleased]: https://github.com/KamiNeko/notes/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/KamiNeko/notes/releases/tag/v0.1.0
