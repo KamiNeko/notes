@@ -34,7 +34,7 @@ flowchart LR
 | S5 | XSS | A note or an uploaded SVG/HTML contains a script. | Sanitized or served as a download; the CSP would block it in any case. | `MarkdownRenderer` tests, `ResourceAndUserTests` |
 | S6 | Secure defaults | A fresh installation with the shipped `docker-compose.yml`. | No default credentials, database not reachable from outside, container read-only without capabilities, demo account off. | CI Compose smoke test |
 | S7 | Vulnerabilities | A dependency gets a published vulnerability. | CI fails (NuGet/npm audit, image scan) and Dependabot opens an update within a week. | CI |
-| S8 | Reporting | A researcher finds a vulnerability. | Private report, acknowledgement within 3 working days, fix for critical issues within 30 days, advisory. | [SECURITY.md](../../SECURITY.md) |
+| S8 | Reporting | A researcher finds a vulnerability. | Private report; targets (best effort): acknowledgement within 3 working days, fix for critical issues within 30 days, advisory. | [SECURITY.md](../../SECURITY.md) |
 | D1 | Portability | A user wants to move to another app. | *Export notes* gives a ZIP of Markdown files with attachments and working links. | `ExportTests` |
 | D2 | No lost text | The network drops or the note was changed on another device while typing. | The draft stays in the browser and is saved later; a conflict shows both versions; earlier states are in the history. | Client tests, `NoteTests`, `VersionTests` |
 | O1 | Update | The administrator updates to a new release. | `docker compose pull && docker compose up -d` (or `--build`); migrations run on start. | Release process |

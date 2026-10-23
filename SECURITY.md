@@ -11,7 +11,7 @@ Notes stores private notes, so security problems are treated as the most importa
 
 Security fixes are released as a new patch version as soon as they are ready and are announced in a [GitHub Security Advisory](https://github.com/KamiNeko/notes/security/advisories) and the [changelog](CHANGELOG.md).
 
-**Support period:** Notes receives security updates for at least five years after its first release, until at least **31 December 2031**. If the project is ever discontinued, that will be announced at least one year in advance in the README and the releases. See [docs/cra.md](docs/cra.md) for what this means under the EU Cyber Resilience Act.
+**No guaranteed support period.** Notes is a free hobby project maintained in spare time. Security fixes are made on a best-effort basis, for the latest release only, for as long as the project is maintained. If it is discontinued, the repository will be archived and the README will say so. See [docs/cra.md](docs/cra.md) for how this relates to the EU Cyber Resilience Act.
 
 ## Reporting a vulnerability
 
@@ -29,6 +29,8 @@ Please include:
 Use test data, not real notes, and don't access other people's data beyond what is needed to show the problem.
 
 ## What happens next
+
+These are targets, not guarantees: Notes is maintained in spare time, but security reports always come first.
 
 | Step | Target |
 | :--- | :--- |

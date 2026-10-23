@@ -7,9 +7,9 @@ How Notes meets the requirements of the EU **Cyber Resilience Act** (Regulation 
 
 ## Does the CRA apply to Notes?
 
-The CRA covers "products with digital elements" that are **made available on the EU market in the course of a commercial activity**. Free and open-source software that is developed and published without monetization (no price, no paid support tied to the product, no use of personal data for profit) is outside its scope (recitals 18 and 19). Notes is published that way today, so the CRA does not formally apply.
+The CRA covers "products with digital elements" that are **made available on the EU market in the course of a commercial activity**. Free and open-source software that is developed and published without monetization (no price, no paid support tied to the product, no use of personal data for profit) is outside its scope (recitals 18 and 19). Notes is a free hobby project, published that way: no price, no paid support, no data collection. **The CRA does not apply to it**, and none of its obligations (such as a support period, CE marking or reporting duties) are binding.
 
-Notes follows the CRA anyway, for two reasons: its requirements are a good, concrete definition of "secure software", and a product that already meets them can be offered commercially later without a rewrite.
+Notes follows the CRA's practices **voluntarily**, for two reasons: its requirements are a good, concrete definition of "secure software", and a product that already meets them can be offered commercially later without a rewrite.
 
 If Notes is ever made available commercially (sold, offered with paid support, or bundled into a paid product), the following would be added:
 
@@ -21,6 +21,7 @@ If Notes is ever made available commercially (sold, offered with paid support, o
 | Technical documentation (Annex VII) | Mostly exists: architecture ([arc42](architecture/README.md)), security guide, this page, SBOMs, test results in CI. Would be collected per release and kept for 10 years. |
 | EU declaration of conformity (Annex V) and CE marking | Not issued. Would be added to each release. |
 | Manufacturer name and postal address (Annex II) | Not published. Would be added to the README and releases. |
+| Support period of at least 5 years (Art. 13(8)) | None declared: security fixes are best effort, for the latest release only ([SECURITY.md](../SECURITY.md#supported-versions)). A support period would be declared. |
 | Reporting to ENISA's single reporting platform (Art. 14) | The process is described in [SECURITY.md](../SECURITY.md). |
 
 ## Essential requirements: product properties (Annex I, Part I)
@@ -65,7 +66,7 @@ If Notes is ever made available commercially (sold, offered with paid support, o
 | Product name and type | Notes, a self-hosted web application for Markdown notes ([README](../README.md)). |
 | Intended purpose, essential functions, security environment | [README](../README.md), [security model](security.md#security-model), [arc42 sections 1 and 3](architecture/README.md) |
 | Known circumstances that lead to risks | [What it does not defend against](security.md#what-it-does-not-defend-against), [hardening checklist](security.md#hardening-checklist), [risks](architecture/11-risks-and-technical-debt.md) |
-| Type of support and end of the support period | Security updates until at least **31 December 2031** ([SECURITY.md](../SECURITY.md#supported-versions)) |
+| Type of support and end of the support period | Best-effort security fixes for the latest release, no guaranteed period ([SECURITY.md](../SECURITY.md#supported-versions)) |
 | Secure setup and commissioning | [Deployment guide](deployment.md), [hardening checklist](security.md#hardening-checklist) |
 | How changes to the setup affect security | [Configuration](../README.md#configuration) and the [hardening checklist](security.md#hardening-checklist) |
 | Installing security updates | [Updating](deployment.md#updating) |

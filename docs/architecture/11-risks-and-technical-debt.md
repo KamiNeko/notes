@@ -6,7 +6,7 @@
 | Administrators can reset passwords | A compromised administrator can take over any account. | Keep few administrators; every reset is logged and ends the victim's sessions (they notice). |
 | No encryption at rest by the app | Disk or backup theft exposes notes. | Documented; use host disk encryption and protect backups. |
 | Login lock and rate limits are in memory | Reset on restart; don't work across several instances. | Fine for a single container; a shared store would be needed to scale out. |
-| One maintainer | Slow fixes when unavailable; bus factor 1. | Automation (CI, Dependabot), documentation, tests; the support policy announces discontinuation a year ahead. |
+| One maintainer | Slow fixes when unavailable; bus factor 1. | Automation (CI, Dependabot), documentation, tests; no support period is promised; if the project ends, the repository is archived and the README says so. |
 | Database and attachment files can drift | A crash between file and row write leaves an orphan file or a missing one. | Missing files answer 404; an orphan cleanup job is a possible improvement. |
 | No per-user storage quota | One user can fill the disk with attachments. | Upload size limit; trusted user base. Possible improvement: quotas per user. |
 | Joplin naming in the API (`parentId`, Unix ms) | Slightly unusual for a fresh API. | Kept on purpose (ADR-6); documented. |

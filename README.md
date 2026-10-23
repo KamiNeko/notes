@@ -73,7 +73,7 @@ Notes is meant to be reachable from the internet, so it is built like it will be
 | 🧱 **Isolation** | Every query is scoped to the signed-in user, covered by tests. The container runs as non-root with a read-only filesystem, no Linux capabilities and `no-new-privileges`; the database is never published. |
 | 📜 **Audit trail** | Sign-ins, failures, locks, password and account changes and refused requests go to a security log with stable event ids, without passwords or tokens. |
 | 📦 **Supply chain** | Lock files for every dependency, base images pinned by digest, GitHub Actions pinned by commit. CodeQL, dependency review, NuGet and npm audit and an image scan on every change; Dependabot for updates. Releases come with SBOMs and signed build provenance you can verify with `gh attestation verify`. |
-| 🇪🇺 **CRA** | Every essential requirement of the EU Cyber Resilience Act is mapped to how Notes meets it, gaps included: [CRA compliance](docs/cra.md). Security updates until at least 2031. |
+| 🇪🇺 **CRA** | Every essential requirement of the EU Cyber Resilience Act is mapped to how Notes meets it, gaps included: [CRA compliance](docs/cra.md). As a free, non-commercial project Notes is outside the CRA's scope and follows it voluntarily. |
 
 Found a vulnerability? Please report it privately, as described in the [security policy](SECURITY.md). Running Notes on the internet? Read the [security guide](docs/security.md) and its hardening checklist first.
 
@@ -161,7 +161,7 @@ Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app 
 | :--- | :--- |
 | [Deployment guide](docs/deployment.md) | Install (also on Proxmox), reverse proxy and HTTPS, updates, backup and restore, command line, removing Notes, troubleshooting |
 | [Security guide](docs/security.md) | Security model, what Notes defends against and what not, hardening checklist, security log, data protection |
-| [Security policy](SECURITY.md) | Supported versions and support period, how to report a vulnerability, response times, verifying releases |
+| [Security policy](SECURITY.md) | Supported versions, how to report a vulnerability, response times, verifying releases |
 | [CRA compliance](docs/cra.md) | How Notes meets the EU Cyber Resilience Act requirement by requirement |
 | [Architecture (arc42)](docs/architecture/README.md) | Goals, context, building blocks, runtime, deployment, concepts, decisions, quality scenarios, risks, glossary |
 | [Changelog](CHANGELOG.md) | What changed in each version, including breaking changes |

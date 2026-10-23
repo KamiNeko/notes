@@ -33,5 +33,5 @@
 
 | Constraint | Consequence |
 | :--- | :--- |
-| EU **Cyber Resilience Act** (Regulation (EU) 2024/2847) | Secure by design and by default, vulnerability handling, SBOMs, security updates for a defined support period, documentation for users. See [CRA compliance](../cra.md). |
+| EU **Cyber Resilience Act** (Regulation (EU) 2024/2847) | Not binding (free, non-commercial project), followed voluntarily: secure by design and by default, vulnerability handling, SBOMs, documentation for users. No support period is declared. See [CRA compliance](../cra.md). |
 | **GDPR** | Notes and logs contain personal data. Data minimisation, deletion and export; no tracking. The operator of an installation is the controller. |
