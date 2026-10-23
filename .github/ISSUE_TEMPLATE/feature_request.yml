@@ -1,0 +1,23 @@
+name: Feature request
+description: An idea for Notes.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Some things are out of scope on purpose (end-to-end encryption, offline mode, sharing). See the [architecture decisions](https://github.com/KamiNeko/notes/blob/main/docs/architecture/09-architecture-decisions.md) before you start.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: The problem or the situation, before any solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could Notes help?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds you tried
