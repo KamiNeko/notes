@@ -1,4 +1,8 @@
 using System.Net;
+using Microsoft.Extensions.Options;
+using Notes.Api.Data;
+using Notes.Api.Infrastructure;
+using Notes.Api.Services;
 
 namespace Notes.Api.Tests;
 
@@ -77,5 +81,31 @@ public class VersionTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         var left = await app.WithServiceAsync<Data.NotesDbContext, int>(db =>
             Task.FromResult(db.NoteVersions.Count(v => v.NoteId == Guid.ParseExact(id, "N"))));
         Assert.Equal(0, left);
+    }
+
+    [Fact]
+    public async Task Versions_past_the_retention_period_are_pruned()
+    {
+        var client = await app.NewUserClientAsync();
+        var notebook = await client.CreateNotebookAsync("Inbox");
+        var id = (await client.CreateNoteAsync(notebook, "Diary", "v1")).Str("id");
+        await client.PutJsonAsync($"/api/notes/{id}", new { body = "v2" });
+        app.Clock.Advance(TimeSpan.FromDays(20));
+        await client.PutJsonAsync($"/api/notes/{id}", new { body = "v3" });
+        app.Clock.Advance(TimeSpan.FromDays(15));
+        async Task<List<string>> PreviewsAsync() =>
+            (await client.GetJsonAsync($"/api/notes/{id}/versions")).EnumerateArray().Select(v => v.Str("preview")).ToList();
+        Assert.Equal(["v2", "v1"], await PreviewsAsync());
+
+        // The default (0) keeps every version
+        Assert.Equal(0, await app.WithServiceAsync<VersionService, int>(versions => versions.PruneAsync(app.Clock.GetUtcNow())));
+        Assert.Equal(["v2", "v1"], await PreviewsAsync());
+
+        // 30 days: the version from 35 days ago goes, the one from 15 days ago stays
+        var deleted = await app.WithServiceAsync<NotesDbContext, int>(db =>
+            new VersionService(db, Options.Create(new NotesOptions { VersionRetentionDays = 30 })).PruneAsync(app.Clock.GetUtcNow()));
+        Assert.True(deleted >= 1);
+        Assert.Equal(["v2"], await PreviewsAsync());
+        Assert.Equal("v3", (await client.GetJsonAsync($"/api/notes/{id}")).Str("body"));
     }
 }
