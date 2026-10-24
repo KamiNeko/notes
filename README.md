@@ -57,6 +57,7 @@ Not included, on purpose: offline mode, sharing notes with others, and end-to-en
 | 🗑️ **Trash** | Deleted notes and notebooks go to the trash, where you can restore them or delete them permanently. |
 | ⚔️ **Conflict detection** | If a note was changed in another tab or on another device while you edited it, you choose which version to keep. |
 | 👥 **Users** | Administrators add accounts, reset passwords, grant the administrator role and delete users (account menu > *Manage users*). Everyone can change their own password. |
+| 🔐 **Two-factor sign-in** | Optional second step with any authenticator app (Aegis, Google Authenticator, 1Password, Bitwarden …): scan a QR code, keep 10 recovery codes. Administrators can turn it off for someone who lost their phone. |
 | 🛟 **No lost typing** | Unsaved text is kept on the device while offline or after the session expires, saves retry when the connection returns, and you can restore a draft later. |
 | 🌗 **Light & dark mode** | Switch themes with one click. |
 | 📱 **Responsive** | Works on phones and tablets as well as on the desktop. |
@@ -67,7 +68,7 @@ Notes is meant to be reachable from the internet, so it is built like it will be
 
 | | |
 | :--- | :--- |
-| 🔑 **Accounts** | Passwords hashed with PBKDF2-HMAC-SHA512 (210,000 iterations), 12 characters minimum (NIST SP 800-63B). Rate limits per address and an account lock after 10 failed sign-ins. Unknown accounts look exactly like wrong passwords. |
+| 🔑 **Accounts** | Passwords hashed with PBKDF2-HMAC-SHA512 (210,000 iterations), 12 characters minimum (NIST SP 800-63B). Rate limits per address and an account lock after 10 failed sign-ins. Unknown accounts look exactly like wrong passwords. Optional two-factor sign-in with an authenticator app (TOTP) and one-time recovery codes. |
 | 🍪 **Sessions** | Server-side sessions, stored only as hashes. `HttpOnly`, `SameSite=Strict`, `Secure` `__Host-` cookie over HTTPS. 30 days idle, 90 days at most; a password change signs out your other devices. |
 | 🛡️ **Browser** | Strict Content Security Policy without inline scripts, sanitized Markdown and HTML, CSRF protection by Origin check, HSTS, `frame-ancestors 'none'`, no caching of API answers. Risky attachments are always downloads. |
 | 🧱 **Isolation** | Every query is scoped to the signed-in user, covered by tests. The container runs as non-root with a read-only filesystem, no Linux capabilities and `no-new-privileges`; the database is never published. |

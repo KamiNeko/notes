@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { AboutDialog } from "@/components/common/Dialogs";
 import { ChangePasswordDialog } from "@/components/account/ChangePasswordDialog";
 import { UsersDialog } from "@/components/account/UsersDialog";
+import { TwoFactorDialog } from "@/components/account/TwoFactorDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,6 +26,7 @@ import {
   LogOut,
   Menu,
   Search,
+  ShieldCheck,
   User,
   Users,
   X,
@@ -56,6 +58,7 @@ export function Header({
   const [aboutOpen, setAboutOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
+  const [twoFactorOpen, setTwoFactorOpen] = useState(false);
 
   // Ctrl+K / Cmd+K focuses the search field (or opens the mobile menu that holds it). In the note
   // editor it inserts a link instead; the editor marks the event as handled then.
@@ -210,6 +213,10 @@ export function Header({
               <KeyRound className="h-3.5 w-3.5" />
               <span>Change password</span>
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTwoFactorOpen(true)} className="cursor-pointer flex items-center gap-2">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Two-factor sign-in</span>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild className="cursor-pointer flex items-center gap-2">
               {/* A plain download: the browser sends the session cookie and saves the ZIP */}
               <a href={getExportUrl()} download>
@@ -238,6 +245,7 @@ export function Header({
         </DropdownMenu>
         <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
         <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
+        <TwoFactorDialog open={twoFactorOpen} onOpenChange={setTwoFactorOpen} />
         {user?.isAdmin && <UsersDialog open={usersOpen} onOpenChange={setUsersOpen} />}
       </div>
     </header>

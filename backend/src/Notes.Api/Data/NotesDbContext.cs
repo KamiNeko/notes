@@ -9,6 +9,8 @@ public class NotesDbContext(DbContextOptions<NotesDbContext> options) : DbContex
 
     public DbSet<Session> Sessions => Set<Session>();
 
+    public DbSet<RecoveryCode> RecoveryCodes => Set<RecoveryCode>();
+
     public DbSet<Notebook> Notebooks => Set<Notebook>();
 
     public DbSet<Note> Notes => Set<Note>();
@@ -28,6 +30,12 @@ public class NotesDbContext(DbContextOptions<NotesDbContext> options) : DbContex
             e.HasIndex(u => u.Email).IsUnique();
             e.Property(u => u.Email).HasMaxLength(320);
             e.Property(u => u.DisplayName).HasMaxLength(200);
+        });
+
+        model.Entity<RecoveryCode>(e =>
+        {
+            e.HasIndex(r => new { r.UserId, r.CodeHash }).IsUnique();
+            e.HasOne<User>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         model.Entity<Session>(e =>

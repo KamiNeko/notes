@@ -4,6 +4,14 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Added
+
+- **Two-factor sign-in:** everyone can turn on a second step with an authenticator app (TOTP, with a QR code), with 10 one-time recovery codes (account menu > *Two-factor sign-in*). Administrators can turn it off for a user who lost their phone (*Manage users*, or `users reset-2fa <email>` on the command line).
+
+### Security
+
+- Two-factor sign-in with an authenticator app: a stolen or guessed password alone no longer opens an account that has it on. Wrong codes count towards the account lock, each code works once, and turning it on, off or getting new recovery codes is logged (events 1006, 1007, 1011–1013, 1025).
+
 ## [0.2.0] - 2026-10-24
 
 ### Added

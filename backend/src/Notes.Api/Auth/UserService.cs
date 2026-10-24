@@ -156,5 +156,5 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
         }
     }
 
-    public static UserDto ToDto(User u) => new(Ids.Format(u.Id), u.Email, u.DisplayName, u.IsAdmin, Times.ToMs(u.CreatedTime));
+    public static UserDto ToDto(User u) => new(Ids.Format(u.Id), u.Email, u.DisplayName, u.IsAdmin, Times.ToMs(u.CreatedTime), u.TotpSecret is not null);
 }

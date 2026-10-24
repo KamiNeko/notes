@@ -15,8 +15,9 @@ Notes is built for a household or a small team on a server you control. It assum
 
 | Threat | Protection |
 | :--- | :--- |
-| Password guessing | Per-address rate limit (30 sign-ins per 15 minutes), plus a per-account lock after 10 failed sign-ins in 15 minutes from any address. Unknown accounts are answered exactly like wrong passwords, in the same time. |
-| Stolen database or backup | Passwords are stored as PBKDF2-HMAC-SHA512 hashes (210,000 iterations, salted). Sessions are stored as SHA-256 hashes of the token, so a database copy can't be used to sign in. |
+| Password guessing | Per-address rate limit (30 sign-ins per 15 minutes), plus a per-account lock after 10 failed sign-ins in 15 minutes from any address. Unknown accounts are answered exactly like wrong passwords, in the same time. Wrong two-factor codes count towards the same lock. |
+| Stolen or leaked password | Optional two-factor sign-in (account menu > *Two-factor sign-in*): signing in also needs a code from an authenticator app (TOTP, RFC 6238) or a one-time recovery code. Each app code is accepted once, recovery codes are stored as SHA-256 hashes, and the app only asks for a code after the right password, so a code prompt doesn't confirm that an account exists. Turning it off needs the password and a code. |
+| Stolen database or backup | Passwords are stored as PBKDF2-HMAC-SHA512 hashes (210,000 iterations, salted). Sessions are stored as SHA-256 hashes of the token, so a database copy can't be used to sign in. Two-factor secrets have to be stored readable to check codes: someone with a database copy can compute app codes, but still needs the password. |
 | Stolen session cookie | The cookie is `HttpOnly` (not readable by scripts), `SameSite=Strict` and, over HTTPS, `Secure` with the `__Host-` prefix. Sessions end after 30 days without use and at most 90 days after sign-in. Changing your password ends your other sessions; an admin's password reset ends all of them. |
 | Cross-site request forgery | `SameSite=Strict`, and every write must come from the app's own `Origin`. |
 | Cross-site scripting through note content | Markdown and HTML notes are sanitized before rendering. A strict Content Security Policy (`script-src 'self'`, no inline scripts) blocks injected scripts even if sanitizing ever missed something. |
@@ -35,7 +36,7 @@ Notes is built for a household or a small team on a server you control. It assum
 - A malicious browser extension or a compromised device of a user.
 - Note content is not encrypted at rest. Use disk encryption on the host (for example ZFS native encryption or LUKS on the Proxmox storage) if that matters for you.
 
-There is no two-factor authentication yet. If you expose Notes to the internet, put it behind your reverse proxy's authentication (for example Authelia or Authentik forward auth) or a VPN (WireGuard, Tailscale) for a second factor.
+Two-factor sign-in is optional for every user. If you expose Notes to the internet, ask your users to turn it on, or additionally put Notes behind your reverse proxy's authentication (for example Authelia or Authentik forward auth) or a VPN (WireGuard, Tailscale). Someone who lost their phone and recovery codes can get it turned off by an administrator (*Manage users*) or on the command line (`users reset-2fa <email>`); that also ends all their sessions.
 
 ## Hardening checklist
 
@@ -60,14 +61,18 @@ Security events are logged under the category `Notes.Security` with stable event
 | 1001 | Sign-in failed (wrong password or unknown account) | Warning |
 | 1002 | Sign-in refused: account locked after too many failures | Warning |
 | 1003 | Signed out | Information |
+| 1006 | Signed in with a recovery code | Warning |
+| 1007 | Sign-in failed: wrong two-factor code | Warning |
 | 1010 | User changed their own password | Information |
+| 1011–1013 | User turned two-factor sign-in on, turned it off (Warning), got new recovery codes | Information |
 | 1020–1023 | Administrator created a user, reset a password, changed the administrator role, deleted a user | Information |
+| 1025 | Administrator or command line turned off a user's two-factor sign-in | Warning |
 | 1030 | Write refused: request from a foreign origin (possible CSRF) | Warning |
 | 1031 | Rate limit hit | Warning |
 | 1040 | The demo account exists | Warning |
 | 1050 | User downloaded the export of all their notes | Information |
 
-Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limit\|exported"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
+Read them with `docker compose logs notes | grep -i "sign-in\|two-factor\|recovery code\|refused\|rate limit\|exported"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
 
 ## Data protection
 

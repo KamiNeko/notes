@@ -109,6 +109,24 @@ export interface UserInfo {
   displayName: string;
   isAdmin: boolean;
   createdTime: number;
+  /** Signs in with a code from an authenticator app as second factor */
+  twoFactor: boolean;
+}
+
+/**
+ * The signed-in user's two-factor sign-in.
+ */
+export interface TwoFactorStatus {
+  enabled: boolean;
+  recoveryCodesLeft: number;
+}
+
+/**
+ * A new authenticator secret during setup: as Base32 to type in, and as otpauth:// URI for the QR code.
+ */
+export interface TwoFactorSetup {
+  secret: string;
+  uri: string;
 }
 
 /**

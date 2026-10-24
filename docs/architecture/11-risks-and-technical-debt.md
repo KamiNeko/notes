@@ -2,7 +2,7 @@
 
 | Risk or debt | Impact | Mitigation / plan |
 | :--- | :--- | :--- |
-| No second factor for sign-in | A guessed or leaked password gives full access to that account. | Lockout and rate limits; strong-password minimum; docs recommend the proxy's forward auth or a VPN for internet exposure. Planned: TOTP and passkeys (WebAuthn). |
+| Two-factor sign-in is optional | For users who don't turn it on, a guessed or leaked password gives full access to that account. TOTP secrets are stored readable in the database. | Lockout and rate limits; strong-password minimum; TOTP with recovery codes (ADR-13); the security guide recommends turning it on for internet exposure. Possible improvements: an administrator setting to require it, passkeys (WebAuthn). |
 | Administrators can reset passwords | A compromised administrator can take over any account. | Keep few administrators; every reset is logged and ends the victim's sessions (they notice). |
 | No encryption at rest by the app | Disk or backup theft exposes notes. | Documented; use host disk encryption and protect backups. |
 | Login lock and rate limits are in memory | Reset on restart; don't work across several instances. | Fine for a single container; a shared store would be needed to scale out. |

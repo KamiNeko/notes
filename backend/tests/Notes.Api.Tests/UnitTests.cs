@@ -83,3 +83,32 @@ public class ResourceTypesTests
         Assert.Equal("attachment; filename=\"_x_.txt\"; filename*=UTF-8''%22x%22.txt", ResourceTypes.ContentDisposition(false, "\"x\".txt"));
     }
 }
+
+public class TotpTests
+{
+    // RFC 6238 appendix B (SHA-1), last six of the eight digits
+    [Theory]
+    [InlineData(59, "287082")]
+    [InlineData(1111111109, "081804")]
+    [InlineData(1234567890, "005924")]
+    [InlineData(2000000000, "279037")]
+    public void Codes_match_the_rfc_test_vectors(long unixSeconds, string expected)
+    {
+        var secret = System.Text.Encoding.ASCII.GetBytes("12345678901234567890");
+        Assert.Equal(expected, Notes.Api.Auth.Totp.Code(secret, Notes.Api.Auth.Totp.StepAt(DateTimeOffset.FromUnixTimeSeconds(unixSeconds))));
+    }
+
+    [Fact]
+    public void Neighbouring_steps_match_once_and_others_never()
+    {
+        var secret = System.Text.Encoding.ASCII.GetBytes("12345678901234567890");
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+        var step = Notes.Api.Auth.Totp.StepAt(now);
+        Assert.Equal(step - 1, Notes.Api.Auth.Totp.Match(secret, Notes.Api.Auth.Totp.Code(secret, step - 1), now, 0));
+        Assert.Equal(step + 1, Notes.Api.Auth.Totp.Match(secret, Notes.Api.Auth.Totp.Code(secret, step + 1), now, 0));
+        Assert.Null(Notes.Api.Auth.Totp.Match(secret, Notes.Api.Auth.Totp.Code(secret, step + 2), now, 0));
+        Assert.Null(Notes.Api.Auth.Totp.Match(secret, Notes.Api.Auth.Totp.Code(secret, step), now, step));
+        Assert.Null(Notes.Api.Auth.Totp.Match(secret, "12345", now, 0));
+        Assert.Equal("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", Notes.Api.Auth.Totp.ToBase32(secret));
+    }
+}
