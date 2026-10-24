@@ -50,7 +50,7 @@ Standard `ILogger` to the console. Security events have their own category, `Not
 
 ## Versions of notes
 
-`VersionService.SnapshotBeforeChangeAsync` runs before every change of title or body. It stores the previous state unless the newest version is younger than `VersionIntervalMinutes`, the note was empty, or the content equals the newest version. The daily `Housekeeping` job deletes versions older than `VersionRetentionDays` (0 keeps all) and, through `TrashService`, notes and notebooks that have been in the trash longer than `TrashRetentionDays` (0 keeps them; a notebook goes with everything below it, like a manual purge).
+`VersionService.SnapshotBeforeChangeAsync` runs before every change of title or body. It stores the previous state unless the newest version is younger than `VersionIntervalMinutes`, the note was empty, or the content equals the newest version. The daily `Housekeeping` job deletes versions older than `VersionRetentionDays` (0 keeps all) and, through `TrashService`, notes and notebooks that have been in the trash longer than `TrashRetentionDays` (0 keeps them; a notebook goes with everything below it, like a manual purge). Last, `ResourceService.DeleteUnusedAsync` deletes attachments older than `AttachmentCleanupDays` that no note, trashed note or version links to (`:/<id>` in the body), and attachment files without a row that are older than that (0 turns it off).
 
 ## Markdown dialect and links
 

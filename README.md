@@ -48,7 +48,7 @@ Not included, on purpose: offline mode, sharing notes with others, and end-to-en
 | 📚 **Notebooks** | Nested notebooks; create, rename, move (into another notebook or to the top level) and delete them. |
 | 📝 **Markdown editor** | CodeMirror editor with *Edit*, *Split* and *Preview* modes, autosave and `Ctrl+S`. Formatting toolbar (also on phones) and shortcuts: `Ctrl+B` bold, `Ctrl+I` italic, `Ctrl+E` code, `Ctrl+K` link. Links to other notes via a search picker or *Copy Markdown link*. |
 | ✨ **Rich rendering** | GitHub-flavored Markdown: tables, task lists, syntax-highlighted code blocks, plus math (KaTeX), Mermaid diagrams, `==highlight==`, `++insert++`, `~sub~` and `^sup^`. HTML notes are shown as sanitized HTML. |
-| 🖼️ **Images & attachments** | Drop, paste or attach files; images are shown inline. |
+| 🖼️ **Images & attachments** | Drop, paste or attach files; images are shown inline. Attachments no note links to any more can be cleaned up automatically. |
 | ✅ **To-dos** | Create to-dos and tick them off, right from the note list. Set, change or clear due dates; overdue to-dos are highlighted. |
 | 🏷️ **Tags** | Tag notes, browse by tag, rename and delete tags. |
 | 🔎 **Search** | Instant search across titles and content (`Ctrl+K`): all words must match, `"exact phrases"`, `-word` to exclude, and filters `tag:`, `notebook:`, `type:todo`, `iscompleted:0`. |
@@ -143,6 +143,7 @@ Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app 
 | `NOTES_VERSION_RETENTION_DAYS` | `Notes__VersionRetentionDays` | `0` | Delete versions older than this many days (`0` keeps all). |
 | `NOTES_TRASH_RETENTION_DAYS` | `Notes__TrashRetentionDays` | `0` | Delete notes and notebooks that have been in the trash this many days (`0` keeps them until deleted by hand). |
 | `NOTES_MAX_UPLOAD_MB` | `Notes__MaxUploadMb` | `25` | Largest attachment. |
+| `NOTES_ATTACHMENT_CLEANUP_DAYS` | `Notes__AttachmentCleanupDays` | `0` | Delete attachments that no note, trashed note or version links to this many days after upload, and stray files without a database row (`0` keeps them). |
 | `NOTES_ALLOW_REMOTE_IMAGES` | `Notes__AllowRemoteImages` | `false` | Show `https:` images from other websites in notes. Off by default because each remote image tells its host who opened the note. |
 | | `Notes__VersionIntervalMinutes` | `10` | Edits within this many minutes of the last version don't create another one. |
 | | `Notes__SessionLifetimeDays`, `Notes__SessionMaxAgeDays` | `30`, `90` | A session ends after this many days without use, and at the latest this many days after sign-in. |
