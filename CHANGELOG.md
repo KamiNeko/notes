@@ -10,6 +10,7 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 - **Attachment cleanup:** `Notes__AttachmentCleanupDays` (`NOTES_ATTACHMENT_CLEANUP_DAYS`) deletes, once a day, attachments uploaded more than this many days ago that no note, trashed note or version links to, and attachment files without a database row. Off (`0`) by default.
 - **Trash retention:** `Notes__TrashRetentionDays` (`NOTES_TRASH_RETENTION_DAYS`) deletes notes and notebooks that have been in the trash longer than this many days, once a day. The default `0` keeps them until deleted by hand, as before. The trash view says how long items stay (`GET /api/settings`).
 - **Storage limits:** `Notes__QuotaMb` limits the attachment space per user (default unlimited); administrators can set another limit per user in *Manage users*, which also shows each account's usage. Uploads past the limit are refused with 413 and a message saying how much is used. The account menu shows the space your attachments take (`GET /api/storage`).
+- **Version changes:** the version history has a *Changes* view that shows what changed from the selected version to the current note: the title and a line diff of the text, with unchanged stretches folded.
 
 ## [0.2.0] - 2026-10-24
 
