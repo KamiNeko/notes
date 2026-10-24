@@ -195,7 +195,7 @@ docs/      Guides, arc42 architecture, screenshots
 | `npm --prefix client run test:e2e` | Playwright smoke tests; starts backend and client itself (`E2E_DATABASE`) |
 | `npm --prefix client run screenshots` | README screenshots into `docs/images` (backend and client must run) |
 
-CI runs all of these on every pull request, plus the security checks above and a Docker image build. [`CLAUDE.md`](CLAUDE.md) describes the conventions for contributors and AI assistants alike.
+CI runs all of these on every pull request, plus the security checks above and a Docker image build. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report bugs and send changes; [`CLAUDE.md`](CLAUDE.md) has the same conventions in full, for contributors and AI assistants alike.
 
 ## License
 

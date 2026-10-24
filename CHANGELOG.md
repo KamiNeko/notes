@@ -11,6 +11,7 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 - `Notes__TrustedProxies`: the addresses a reverse proxy may connect from (defaults to private networks).
 - Release workflow: multi-arch images on GHCR with signed build provenance, SBOM attestations and CycloneDX SBOMs attached to each GitHub release.
 - CodeQL, OpenSSF Scorecard, dependency review, NuGet and npm audit and a container image scan in CI; Dependabot for all dependency ecosystems.
+- [Contributing guide](CONTRIBUTING.md) and issue and pull request templates.
 - Documentation: [security policy](SECURITY.md), [security guide](docs/security.md), [deployment guide](docs/deployment.md), [CRA compliance](docs/cra.md) and the architecture documentation in [arc42](docs/architecture/README.md) form.
 
 ### Changed

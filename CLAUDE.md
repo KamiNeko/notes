@@ -11,7 +11,7 @@ Security is a first-class requirement and the project follows the EU Cyber Resil
   - `tests/Notes.Api.Tests/`: xUnit v3 integration tests through `NotesApiFactory` (fresh Postgres database per test class, `FakeTimeProvider`).
 - `client/`: React 19 + Vite + TypeScript, Tailwind 4, shadcn/ui (`src/components/ui/` is generated), TanStack Query, CodeMirror 6. Import alias `@/` → `client/src/`. Tests next to the code as `*.test.ts(x)` (Vitest + Testing Library, jsdom); `src/test/` has the `fetch` stub and `renderWithProviders`. Playwright smoke tests in `client/e2e/`.
 - `docker/Dockerfile` (client build → `dotnet publish` → aspnet runtime, client in `wwwroot`), `docker-compose.yml` + `.env.example` (hardened production stack), `.devcontainer/` (SDK, Node 24, Postgres), `.github/workflows/` (`ci.yml`, `codeql.yml`, `scorecard.yml`, `release.yml` on `v*` tags), `.github/dependabot.yml`.
-- `docs/`: `architecture/` (arc42, one file per section), `security.md`, `cra.md`, `deployment.md`; `SECURITY.md` and `CHANGELOG.md` at the root.
+- `docs/`: `architecture/` (arc42, one file per section), `security.md`, `cra.md`, `deployment.md`; `SECURITY.md`, `CONTRIBUTING.md` and `CHANGELOG.md` at the root, issue and PR templates in `.github/`.
 
 ## Commands
 
