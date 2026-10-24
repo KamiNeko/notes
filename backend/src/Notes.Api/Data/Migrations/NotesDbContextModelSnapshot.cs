@@ -271,6 +271,12 @@ namespace Notes.Api.Data.Migrations
                         .HasColumnType("bytea")
                         .HasColumnName("token_hash");
 
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("user_agent");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");

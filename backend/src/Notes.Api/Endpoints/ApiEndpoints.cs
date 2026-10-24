@@ -91,7 +91,7 @@ public static class ApiEndpoints
                 throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid email or password");
             }
             throttle.Reset(email);
-            var (token, expires) = await sessions.CreateAsync(user.Id, ct);
+            var (token, expires) = await sessions.CreateAsync(user.Id, context.Request.Headers.UserAgent.ToString(), ct);
             cookies.Write(context, token, expires);
             SecurityLog.LoginSucceeded(log, user.Email, client);
             // Only non-browser API clients (no Origin header) get the token in the body; browsers only ever get the httpOnly cookie
@@ -115,6 +115,25 @@ public static class ApiEndpoints
         {
             var user = await users.FindAsync(principal.UserId(), ct) ?? throw new ApiException(401, "Unauthorized: Session has expired or is invalid");
             return Results.Ok(new { valid = true, user = UserService.ToDto(user) });
+        }).RequireAuthorization();
+
+        // Where the account is signed in: the user can end a lost device's session without changing the password
+        auth.MapGet("/sessions", async (ClaimsPrincipal user, SessionService sessions, CancellationToken ct) =>
+            Results.Ok(await sessions.ListAsync(user.UserId(), user.SessionIdOf(), ct))).RequireAuthorization();
+
+        auth.MapDelete("/sessions/{id}", async (string id, HttpContext context, ClaimsPrincipal user, SessionService sessions, ILoggerFactory loggers, CancellationToken ct) =>
+        {
+            await sessions.EndAsync(user.UserId(), id, ct);
+            if (id == Ids.Format(user.SessionIdOf())) SessionCookies.Clear(context);
+            SecurityLog.SessionEnded(loggers.CreateLogger(SecurityLog.Category), Ids.Format(user.UserId()), id, SecurityLog.Client(context));
+            return Results.NoContent();
+        }).RequireAuthorization();
+
+        auth.MapDelete("/sessions", async (HttpContext context, ClaimsPrincipal user, SessionService sessions, ILoggerFactory loggers, CancellationToken ct) =>
+        {
+            var ended = await sessions.EndOthersAsync(user.UserId(), user.SessionIdOf(), ct);
+            SecurityLog.OtherSessionsEnded(loggers.CreateLogger(SecurityLog.Category), Ids.Format(user.UserId()), ended, SecurityLog.Client(context));
+            return Results.Ok(new { ended });
         }).RequireAuthorization();
 
         auth.MapPost("/password", async (ChangePasswordRequest body, ClaimsPrincipal user, UserService users, ILoggerFactory loggers, CancellationToken ct) =>
