@@ -3,7 +3,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Notes.Api.Infrastructure;
 
 namespace Notes.Api.Tests;
@@ -140,6 +142,14 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         Assert.Contains(allowed.Headers.GetValues("Set-Cookie"), c => c.StartsWith("__Host-notes_session=", StringComparison.Ordinal) && c.Contains("secure", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(HttpStatusCode.Forbidden, (await LoginFromAsync("https://notes.example.com.evil.test")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await LoginFromAsync("http://notes.example.com:8443")).StatusCode);
+    }
+
+    [Fact]
+    public void The_upload_limit_comes_from_max_upload_mb()
+    {
+        using var limited = app.WithWebHostBuilder(builder => builder.UseSetting("Notes:MaxUploadMb", "2"));
+        var kestrel = limited.Services.GetRequiredService<IOptions<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>>().Value;
+        Assert.Equal(2L * 1024 * 1024, kestrel.Limits.MaxRequestBodySize);
     }
 
     [Fact]
