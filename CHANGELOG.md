@@ -4,6 +4,10 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Added
+
+- **Signed-in devices:** see where your account is signed in (browser and system, last activity) and sign out one device or all others, without changing the password (account menu > *Signed-in devices*, `GET`/`DELETE /api/auth/sessions`). Sessions now keep a shortened User-Agent for this list; no address is stored. Ending sessions is logged as security events 1004 and 1005.
+
 ## [0.2.0] - 2026-10-24
 
 ### Added
