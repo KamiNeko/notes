@@ -121,3 +121,13 @@ Each decision is recorded with its context, the decision and its consequences. N
 **Decision.** Not supported. Confidentiality at rest is left to the host (disk encryption).
 
 **Consequences.** A much simpler system. Whoever controls the server can read the notes; this is documented in the security guide.
+
+## ADR-13: Two-factor sign-in with TOTP and recovery codes
+
+*Accepted, October 2026.*
+
+**Context.** A guessed or leaked password gave full access to an account; the only advice was a proxy's forward auth or a VPN. Self-hosters want a second factor that needs no extra service.
+
+**Decision.** Optional time-based one-time passwords (RFC 6238), implemented in a few lines on top of .NET's HMAC instead of a library, with ten one-time recovery codes stored as hashes. The second factor is sent with email and password in the same sign-in request (401 with `details.secondFactor` asks for it), so there is no pending sign-in state. Administrators and the command line can turn it off for a user who lost their phone. Passkeys (WebAuthn) may follow as a second method.
+
+**Consequences.** Works with every authenticator app and needs no new dependency on the server (the client uses a small QR encoder). The TOTP secret must be stored readable; a database copy reveals it, but an attacker also needs the password. It is optional per user, not enforced by the administrator.

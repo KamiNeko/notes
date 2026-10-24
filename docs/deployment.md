@@ -143,9 +143,10 @@ docker compose up -d
 docker compose exec notes dotnet Notes.Api.dll users list
 docker compose exec -it notes dotnet Notes.Api.dll users add alice@example.com --name "Alice" [--admin]
 docker compose exec -it notes dotnet Notes.Api.dll users set-password alice@example.com
+docker compose exec notes dotnet Notes.Api.dll users reset-2fa alice@example.com
 ```
 
-The password is read from standard input (or `NOTES_PASSWORD`). Use this if you lock yourself out.
+The password is read from standard input (or `NOTES_PASSWORD`). Use this if you lock yourself out. `reset-2fa` turns off two-factor sign-in for someone who lost their phone and recovery codes, and ends their sessions.
 
 ## Logs and monitoring
 

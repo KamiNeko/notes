@@ -5,13 +5,14 @@ import { jsonResponse, mockFetch } from "@/test/fetch-mock";
 import { renderWithProviders } from "@/test/render";
 import { UsersDialog } from "./UsersDialog";
 
-const me: AdminUser = { id: "a".repeat(32), email: "admin@example.com", displayName: "Admin", isAdmin: true, createdTime: 0, quotaMb: null, usedBytes: 0 };
+const me: AdminUser = { id: "a".repeat(32), email: "admin@example.com", displayName: "Admin", isAdmin: true, createdTime: 0, twoFactor: false, quotaMb: null, usedBytes: 0 };
 const other: AdminUser = {
   id: "b".repeat(32),
   email: "friend@example.com",
   displayName: "",
   isAdmin: false,
   createdTime: 0,
+  twoFactor: true,
   quotaMb: 500,
   usedBytes: 1.5 * 1024 * 1024,
 };
@@ -103,5 +104,27 @@ describe("UsersDialog", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Use default" }));
     expect(await within(list).findByText("1.5 MB used · default limit")).toBeTruthy();
     expect(calls.filter((c) => c.method === "PUT").map((c) => c.body)).toEqual([{ quotaMb: 0 }, { resetQuota: true }]);
+  });
+
+  it("turns off another user's two-factor sign-in after confirming", async () => {
+    let users = [me, other];
+    const calls = mockFetch(({ method, path }) => {
+      if (path === "/api/admin/users" && method === "GET") return jsonResponse(users);
+      if (method === "DELETE" && path === `/api/admin/users/${other.id}/2fa`) {
+        users = [me, { ...other, twoFactor: false }];
+        return new Response(null, { status: 204 });
+      }
+      return undefined;
+    });
+    renderWithProviders(<UsersDialog open onOpenChange={() => undefined} />);
+    const list = await screen.findByRole("list", { name: "Accounts" });
+    expect(await within(list).findByLabelText("Two-factor sign-in is on")).toBeTruthy();
+
+    fireEvent.keyDown(within(list).getByRole("button", { name: `Actions for ${other.email}` }), { key: "Enter" });
+    fireEvent.click(within(await screen.findByRole("menu")).getByRole("menuitem", { name: "Turn off two-factor sign-in" }));
+    fireEvent.click(within(await screen.findByRole("dialog", { name: "Turn off two-factor sign-in?" })).getByRole("button", { name: "Turn off" }));
+
+    await waitFor(() => expect(within(list).queryByLabelText("Two-factor sign-in is on")).toBeNull());
+    expect(calls.some((c) => c.method === "DELETE")).toBe(true);
   });
 });

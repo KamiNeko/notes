@@ -12,6 +12,11 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 - **Storage limits:** `Notes__QuotaMb` limits the attachment space per user (default unlimited); administrators can set another limit per user in *Manage users*, which also shows each account's usage. Uploads past the limit are refused with 413 and a message saying how much is used. The account menu shows the space your attachments take (`GET /api/storage`).
 - **Version changes:** the version history has a *Changes* view that shows what changed from the selected version to the current note: the title and a line diff of the text, with unchanged stretches folded.
 - **Import:** account menu > *Import notes* takes a ZIP of Markdown files (Notes' own export, or e.g. an Obsidian vault) and creates its folders as notebooks inside a new notebook, with title, dates, tags and to-do state from the front matter, other files as attachments, and relative links rewritten to the imported notes and attachments (`POST /api/import`, `Notes__MaxImportMb`, default 200). Archives are checked against ZIP bombs and unsafe paths.
+- **Two-factor sign-in:** everyone can turn on a second step with an authenticator app (TOTP, with a QR code), with 10 one-time recovery codes (account menu > *Two-factor sign-in*). Administrators can turn it off for a user who lost their phone (*Manage users*, or `users reset-2fa <email>` on the command line).
+
+### Security
+
+- Two-factor sign-in with an authenticator app: a stolen or guessed password alone no longer opens an account that has it on. Wrong codes count towards the account lock, each code works once, and turning it on, off or getting new recovery codes is logged (events 1006, 1007, 1011–1013, 1025).
 
 ## [0.2.0] - 2026-10-24
 

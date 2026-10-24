@@ -10,7 +10,14 @@ using Notes.Api.Services;
 
 namespace Notes.Api.Endpoints;
 
-public record LoginRequest(string? Email, string? Password);
+/// <summary><c>Code</c>: the authenticator app's code or a recovery code, for accounts with two-factor sign-in.</summary>
+public record LoginRequest(string? Email, string? Password, string? Code);
+
+public record PasswordRequest(string? Password);
+
+public record TwoFactorCodeRequest(string? Code);
+
+public record DisableTwoFactorRequest(string? Password, string? Code);
 
 public record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
 
@@ -88,8 +95,8 @@ public static class ApiEndpoints
     {
         var auth = api.MapGroup("/auth");
 
-        auth.MapPost("/login", async (LoginRequest body, HttpContext context, UserService users, SessionService sessions, SessionCookies cookies,
-            LoginThrottle throttle, ILoggerFactory loggers, CancellationToken ct) =>
+        auth.MapPost("/login", async (LoginRequest body, HttpContext context, UserService users, TwoFactorService twoFactor, SessionService sessions,
+            SessionCookies cookies, LoginThrottle throttle, ILoggerFactory loggers, CancellationToken ct) =>
         {
             if (string.IsNullOrEmpty(body.Email) || string.IsNullOrEmpty(body.Password)) throw ApiException.BadRequest("Email and password are required");
             var log = loggers.CreateLogger(SecurityLog.Category);
@@ -108,6 +115,22 @@ public static class ApiEndpoints
                 throttle.RecordFailure(email);
                 SecurityLog.LoginFailed(log, email, client);
                 throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid email or password");
+            }
+            if (user.TotpSecret is not null)
+            {
+                // Only someone who knows the password learns that a second factor is needed
+                if (string.IsNullOrWhiteSpace(body.Code))
+                {
+                    return SecondFactorNeeded("Enter the code from your authenticator app");
+                }
+                var factor = await twoFactor.VerifyAsync(user, body.Code, ct);
+                if (factor is null)
+                {
+                    throttle.RecordFailure(email);
+                    SecurityLog.SecondFactorFailed(log, user.Email, client);
+                    return SecondFactorNeeded("The code is wrong or was already used");
+                }
+                if (factor == SecondFactor.RecoveryCode) SecurityLog.RecoveryCodeUsed(log, user.Email, client);
             }
             throttle.Reset(email);
             var (token, expires) = await sessions.CreateAsync(user.Id, context.Request.Headers.UserAgent.ToString(), ct);
@@ -162,6 +185,34 @@ public static class ApiEndpoints
             SecurityLog.PasswordChanged(loggers.CreateLogger(SecurityLog.Category), Ids.Format(user.UserId()));
             return Results.NoContent();
         }).RequireAuthorization().RequireRateLimiting(RateLimits.LoginPolicy);
+
+        // Password and code checks: the same rate limit as sign-ins
+        MapTwoFactor(auth.MapGroup("/2fa").RequireAuthorization().RequireRateLimiting(RateLimits.LoginPolicy));
+    }
+
+    /// <summary>401 that tells the login form to ask for the second factor.</summary>
+    private static IResult SecondFactorNeeded(string message) =>
+        Results.Json(new { error = message, status = 401, details = new { secondFactor = true } }, statusCode: StatusCodes.Status401Unauthorized);
+
+    private static void MapTwoFactor(RouteGroupBuilder group)
+    {
+        group.MapGet("", async (ClaimsPrincipal user, TwoFactorService twoFactor, CancellationToken ct) =>
+            Results.Ok(await twoFactor.StatusAsync(user.UserId(), ct)));
+
+        group.MapPost("/setup", async (PasswordRequest body, ClaimsPrincipal user, TwoFactorService twoFactor, CancellationToken ct) =>
+            Results.Ok(await twoFactor.SetupAsync(user.UserId(), body.Password ?? "", ct)));
+
+        group.MapPost("/enable", async (TwoFactorCodeRequest body, ClaimsPrincipal user, TwoFactorService twoFactor, CancellationToken ct) =>
+            Results.Ok(new { recoveryCodes = await twoFactor.EnableAsync(user.UserId(), body.Code ?? "", ct) }));
+
+        group.MapPost("/recovery-codes", async (PasswordRequest body, ClaimsPrincipal user, TwoFactorService twoFactor, CancellationToken ct) =>
+            Results.Ok(new { recoveryCodes = await twoFactor.NewRecoveryCodesAsync(user.UserId(), body.Password ?? "", ct) }));
+
+        group.MapPost("/disable", async (DisableTwoFactorRequest body, ClaimsPrincipal user, TwoFactorService twoFactor, CancellationToken ct) =>
+        {
+            await twoFactor.DisableAsync(user.UserId(), body.Password ?? "", body.Code ?? "", ct);
+            return Results.NoContent();
+        });
     }
 
     private static void MapNotebooks(RouteGroupBuilder group)
@@ -314,6 +365,12 @@ public static class ApiEndpoints
         group.MapPut("/users/{id}", async (string id, UpdateUserRequest body, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
             Results.Ok(await users.UpdateAsync(Actor(user), Ids.Parse(id, "user id"), body.Password, body.DisplayName, body.IsAdmin,
                 body.QuotaMb, body.ResetQuota ?? false, ct)));
+
+        group.MapDelete("/users/{id}/2fa", async (string id, ClaimsPrincipal user, TwoFactorService twoFactor, CancellationToken ct) =>
+        {
+            await twoFactor.ResetAsync(Actor(user), Ids.Parse(id, "user id"), ct);
+            return Results.NoContent();
+        });
 
         group.MapDelete("/users/{id}", async (string id, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
         {

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { HardDrive, KeyRound, Loader2, MoreHorizontal, Shield, ShieldOff, Trash2, UserPlus } from "lucide-react";
+import { HardDrive, KeyRound, Loader2, MoreHorizontal, Shield, ShieldCheck, ShieldOff, ShieldX, Trash2, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCreateUser, useDeleteUser, useUpdateUser, useUsers } from "@/hooks/use-users";
+import { useResetUserTwoFactor } from "@/hooks/use-two-factor";
 import { formatBytes } from "@/lib/format";
 import { AdminUser } from "@/lib/types";
 import { ConfirmDialog } from "@/components/common/Dialogs";
@@ -36,6 +37,8 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const [resetFor, setResetFor] = useState<AdminUser | null>(null);
   const [quotaFor, setQuotaFor] = useState<AdminUser | null>(null);
   const [deleteFor, setDeleteFor] = useState<AdminUser | null>(null);
+  const [resetTwoFactorFor, setResetTwoFactorFor] = useState<AdminUser | null>(null);
+  const resetTwoFactor = useResetUserTwoFactor();
 
   const toggleAdmin = (user: AdminUser) => {
     updateUser.mutate(
@@ -45,6 +48,18 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         onError: (err) => toast.error("Could not change the role", { description: err.message }),
       }
     );
+  };
+
+  const handleResetTwoFactor = () => {
+    if (!resetTwoFactorFor) return;
+    const email = resetTwoFactorFor.email;
+    resetTwoFactor.mutate(resetTwoFactorFor.id, {
+      onSuccess: () => {
+        setResetTwoFactorFor(null);
+        toast.success(`Two-factor sign-in turned off for ${email}`, { description: "They were signed out everywhere." });
+      },
+      onError: (err) => toast.error("Could not turn off two-factor sign-in", { description: err.message }),
+    });
   };
 
   const handleDelete = () => {
@@ -96,6 +111,11 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                       <p className="text-[11px] text-muted-foreground truncate">{storageLabel(user)}</p>
                     </div>
                     {isMe && <Badge variant="outline" className="text-[10px]">You</Badge>}
+                    {user.twoFactor && (
+                      <span title="Two-factor sign-in is on" className="shrink-0">
+                        <ShieldCheck className="h-4 w-4 text-success" aria-label="Two-factor sign-in is on" />
+                      </span>
+                    )}
                     {user.isAdmin && (
                       <Badge variant="outline" className="text-[10px] gap-1 border-primary/30 bg-primary/10 text-foreground">
                         <Shield className="h-3 w-3 text-primary" />
@@ -117,6 +137,12 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                           <HardDrive className="h-4 w-4" />
                           Set storage limit
                         </DropdownMenuItem>
+                        {user.twoFactor && !isMe && (
+                          <DropdownMenuItem onClick={() => setResetTwoFactorFor(user)}>
+                            <ShieldX className="h-4 w-4" />
+                            Turn off two-factor sign-in
+                          </DropdownMenuItem>
+                        )}
                         {!isMe && (
                           <DropdownMenuItem onClick={() => toggleAdmin(user)}>
                             {user.isAdmin ? <ShieldOff className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
@@ -143,6 +169,20 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 
         <SetPasswordDialog user={resetFor} onClose={() => setResetFor(null)} />
         <SetQuotaDialog user={quotaFor} onClose={() => setQuotaFor(null)} />
+        <ConfirmDialog
+          open={resetTwoFactorFor !== null}
+          onOpenChange={(value) => !value && setResetTwoFactorFor(null)}
+          title="Turn off two-factor sign-in?"
+          description={
+            resetTwoFactorFor
+              ? `For when ${resetTwoFactorFor.email} lost their authenticator and recovery codes. They will be signed out everywhere and can sign in with their password only, until they set it up again.`
+              : undefined
+          }
+          confirmLabel="Turn off"
+          destructive
+          isPending={resetTwoFactor.isPending}
+          onConfirm={handleResetTwoFactor}
+        />
         <ConfirmDialog
           open={deleteFor !== null}
           onOpenChange={(value) => !value && setDeleteFor(null)}

@@ -300,6 +300,64 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         Assert.Contains($"{userId} imported 1 notes and 0 attachments", imported.Message);
     }
 
+    [Fact]
+    public async Task Two_factor_changes_and_failures_are_logged_as_security_events()
+    {
+        var log = new LogCollector();
+        using var logged = app.WithWebHostBuilder(builder => builder
+            .UseSetting("Logging:LogLevel:Notes.Security", "Information")
+            .ConfigureLogging(logging => logging.AddProvider(log)));
+        HttpClient Browser()
+        {
+            var client = logged.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+            client.DefaultRequestHeaders.Add("Origin", "http://localhost");
+            return client;
+        }
+        using var admin = Browser();
+        (await admin.PostAsJsonAsync("/api/auth/login", new { email = "admin@notes.test", password = "admin-password" })).EnsureSuccessStatusCode();
+        var email = $"tfa-log-{Guid.NewGuid():N}@notes.test";
+        var userId = (await admin.PostJsonAsync("/api/admin/users", new { email, password = "user-password" }, HttpStatusCode.Created)).Str("id");
+        using var user = Browser();
+        (await user.PostAsJsonAsync("/api/auth/login", new { email, password = "user-password" })).EnsureSuccessStatusCode();
+        var secret = await user.PostJsonAsync("/api/auth/2fa/setup", new { password = "user-password" });
+        var key = Base32Decode(secret.Str("secret"));
+        var codes = (await user.PostJsonAsync("/api/auth/2fa/enable", new { code = Totp.Code(key, Totp.StepAt(app.Clock.GetUtcNow())) }))
+            .GetProperty("recoveryCodes").EnumerateArray().Select(c => c.GetString()!).ToList();
+
+        using (var attempt = Browser())
+        {
+            await attempt.PostAsJsonAsync("/api/auth/login", new { email, password = "user-password", code = "000000" });
+            (await attempt.PostAsJsonAsync("/api/auth/login", new { email, password = "user-password", code = codes[0] })).EnsureSuccessStatusCode();
+        }
+        await user.PostJsonAsync("/api/auth/2fa/recovery-codes", new { password = "user-password" });
+        await admin.DeleteJsonAsync($"/api/admin/users/{userId}/2fa", HttpStatusCode.NoContent);
+
+        var events = log.Entries.Where(e => e.Category == SecurityLog.Category).ToList();
+        Assert.Contains(events, e => e.EventId == 1011 && e.Message.Contains(userId));
+        Assert.Contains(events, e => e.EventId == 1007 && e.Message.Contains(email));
+        Assert.Contains(events, e => e.EventId == 1006 && e.Message.Contains(email));
+        Assert.Contains(events, e => e.EventId == 1013 && e.Message.Contains(userId));
+        Assert.Contains(events, e => e.EventId == 1025 && e.Message == $"admin@notes.test turned off two-factor sign-in for {email}; all their sessions were ended");
+        Assert.DoesNotContain(events, e => e.Message.Contains(codes[0]) || e.Message.Contains(secret.Str("secret")));
+    }
+
+    private static byte[] Base32Decode(string text)
+    {
+        var bytes = new List<byte>();
+        int buffer = 0, bits = 0;
+        foreach (var c in text)
+        {
+            buffer = (buffer << 5) | "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".IndexOf(c);
+            bits += 5;
+            if (bits >= 8)
+            {
+                bytes.Add((byte)(buffer >> (bits - 8)));
+                bits -= 8;
+            }
+        }
+        return [.. bytes];
+    }
+
     /// <summary>Keeps every log entry in memory, for assertions on the security log.</summary>
     private sealed class LogCollector : ILoggerProvider
     {

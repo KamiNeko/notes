@@ -14,6 +14,8 @@ import {
   AdminUser,
   StorageUsage,
   ImportResult,
+  TwoFactorSetup,
+  TwoFactorStatus,
 } from "./types";
 import { changePendingWrites, recordNetworkError, recordResponse } from "./connection";
 
@@ -207,14 +209,62 @@ async function send<T>(endpoint: string, init: RequestInit, skipAuthRedirect: bo
 }
 
 /**
- * Authenticates user with email and password. The backend sets the session cookie.
+ * Authenticates user with email and password, plus `code` (authenticator or recovery code) for accounts
+ * with two-factor sign-in. The backend sets the session cookie. When a code is needed or wrong, the
+ * ApiError passes `needsSecondFactor`.
  */
-export async function login(email: string, password: string): Promise<LoginResponse> {
+export async function login(email: string, password: string, code?: string): Promise<LoginResponse> {
   return request<LoginResponse>("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, code: code || undefined }),
     skipAuthRedirect: true,
   });
+}
+
+/**
+ * Whether a failed login asks for the second factor (the password was right).
+ */
+export function needsSecondFactor(err: unknown): boolean {
+  if (!(err instanceof ApiError) || err.status !== 401) return false;
+  const details = (err.data as { details?: { secondFactor?: unknown } } | undefined)?.details;
+  return details?.secondFactor === true;
+}
+
+/**
+ * The signed-in user's two-factor status.
+ */
+export async function getTwoFactorStatus(): Promise<TwoFactorStatus> {
+  return request<TwoFactorStatus>("/api/auth/2fa");
+}
+
+/**
+ * Starts two-factor setup (needs the password): a new secret, confirmed with enableTwoFactor.
+ */
+export async function startTwoFactorSetup(password: string): Promise<TwoFactorSetup> {
+  return request<TwoFactorSetup>("/api/auth/2fa/setup", { method: "POST", body: JSON.stringify({ password }) });
+}
+
+/**
+ * Turns two-factor sign-in on with a code from the new secret; returns the recovery codes (shown once).
+ */
+export async function enableTwoFactor(code: string): Promise<string[]> {
+  const result = await request<{ recoveryCodes: string[] }>("/api/auth/2fa/enable", { method: "POST", body: JSON.stringify({ code }) });
+  return result.recoveryCodes;
+}
+
+/**
+ * Replaces the recovery codes (needs the password); the old ones stop working.
+ */
+export async function newRecoveryCodes(password: string): Promise<string[]> {
+  const result = await request<{ recoveryCodes: string[] }>("/api/auth/2fa/recovery-codes", { method: "POST", body: JSON.stringify({ password }) });
+  return result.recoveryCodes;
+}
+
+/**
+ * Turns two-factor sign-in off (needs the password and a current or recovery code).
+ */
+export async function disableTwoFactor(password: string, code: string): Promise<void> {
+  await request("/api/auth/2fa/disable", { method: "POST", body: JSON.stringify({ password, code }) });
 }
 
 /**
@@ -246,6 +296,7 @@ function readUser(data: unknown): UserInfo | null {
     displayName: typeof user.displayName === "string" ? user.displayName : "",
     isAdmin: user.isAdmin === true,
     createdTime: typeof user.createdTime === "number" ? user.createdTime : 0,
+    twoFactor: user.twoFactor === true,
   };
 }
 
@@ -712,6 +763,13 @@ export async function updateUser(
   changes: { password?: string; displayName?: string; isAdmin?: boolean; quotaMb?: number; resetQuota?: boolean }
 ): Promise<UserInfo> {
   return request<UserInfo>(`/api/admin/users/${id}`, { method: "PUT", body: JSON.stringify(changes) });
+}
+
+/**
+ * Turns two-factor sign-in off for a user who lost their authenticator and recovery codes; ends their sessions.
+ */
+export async function resetUserTwoFactor(id: string): Promise<void> {
+  await request(`/api/admin/users/${id}/2fa`, { method: "DELETE" });
 }
 
 /**

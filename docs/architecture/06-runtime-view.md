@@ -9,7 +9,7 @@ sequenceDiagram
     participant A as Notes.Api
     participant T as LoginThrottle
     participant D as PostgreSQL
-    U->>C: email + password
+    U->>C: email + password (+ code)
     C->>A: POST /api/auth/login (Origin: own origin)
     A->>A: rate limit per address (30 / 15 min)
     A->>T: account locked?
@@ -21,13 +21,19 @@ sequenceDiagram
         alt wrong
             A->>T: count failure
             A-->>C: 401 "Invalid email or password"
-        else right
+        else right, two-factor sign-in on and no code or a wrong one
+            A->>T: count failure (only for a wrong code)
+            A-->>C: 401 details.secondFactor, the client asks for the code
+        else right (and the code, if on)
+            A->>D: claim the code's time step, or delete the used recovery code
             A->>D: insert session (SHA-256 of a 32-byte random token)
             A-->>C: 200 { user } + Set-Cookie (HttpOnly, SameSite=Strict)
         end
     end
     Note over A: Every step is written to the security log
 ```
+
+With two-factor sign-in on, the client sends email and password again together with the code, so the server keeps no half-signed-in state. A code from the app is accepted in the current 30-second step and one step either side, and only for a step after the last accepted one; the step is claimed with a conditional update, so two requests with the same code can't both pass.
 
 Every later request carries the cookie. `SessionAuthenticationHandler` looks up the token hash, checks expiry (30 days without use, 90 days at most) and loads the user with their current role. Every few minutes of use it moves the expiry ahead and renews the cookie.
 

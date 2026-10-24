@@ -207,6 +207,36 @@ namespace Notes.Api.Data.Migrations
                     b.ToTable("notebooks", (string)null);
                 });
 
+            modelBuilder.Entity("Notes.Api.Data.RecoveryCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<byte[]>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("code_hash");
+
+                    b.Property<DateTimeOffset>("CreatedTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_time");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_recovery_codes");
+
+                    b.HasIndex("UserId", "CodeHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_recovery_codes_user_id_code_hash");
+
+                    b.ToTable("recovery_codes", (string)null);
+                });
+
             modelBuilder.Entity("Notes.Api.Data.Resource", b =>
                 {
                     b.Property<Guid>("Id")
@@ -362,6 +392,17 @@ namespace Notes.Api.Data.Migrations
                     b.Property<int?>("QuotaMb")
                         .HasColumnType("integer")
                         .HasColumnName("quota_mb");
+                    b.Property<long>("TotpLastStep")
+                        .HasColumnType("bigint")
+                        .HasColumnName("totp_last_step");
+
+                    b.Property<byte[]>("TotpPendingSecret")
+                        .HasColumnType("bytea")
+                        .HasColumnName("totp_pending_secret");
+
+                    b.Property<byte[]>("TotpSecret")
+                        .HasColumnType("bytea")
+                        .HasColumnName("totp_secret");
 
                     b.Property<DateTimeOffset>("UpdatedTime")
                         .HasColumnType("timestamp with time zone")
@@ -446,6 +487,16 @@ namespace Notes.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_notebooks_users_user_id");
+                });
+
+            modelBuilder.Entity("Notes.Api.Data.RecoveryCode", b =>
+                {
+                    b.HasOne("Notes.Api.Data.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_recovery_codes_users_user_id");
                 });
 
             modelBuilder.Entity("Notes.Api.Data.Resource", b =>

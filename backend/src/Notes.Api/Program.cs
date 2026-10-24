@@ -33,6 +33,7 @@ builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddSingleton<SessionCookies>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<TwoFactorService>();
 builder.Services.AddScoped<NotebookService>();
 builder.Services.AddScoped<NoteService>();
 builder.Services.AddScoped<VersionService>();
