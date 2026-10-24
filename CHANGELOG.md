@@ -4,6 +4,8 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-24
+
 ### Added
 
 - **Signed-in devices:** see where your account is signed in (browser and system, last activity) and sign out one device or all others, without changing the password (account menu > *Signed-in devices*, `GET`/`DELETE /api/auth/sessions`). Sessions now keep a shortened User-Agent for this list; no address is stored. Ending sessions is logged as security events 1004 and 1005.
@@ -64,6 +66,7 @@ First release.
 - Server-side sessions with `HttpOnly`, `SameSite=Strict` cookies, Origin check, Content Security Policy, rate limits.
 - Docker image, Docker Compose stack with PostgreSQL 17, dev container, CI.
 
-[Unreleased]: https://github.com/KamiNeko/notes/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/KamiNeko/notes/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/KamiNeko/notes/releases/tag/v0.3.0
 [0.2.0]: https://github.com/KamiNeko/notes/releases/tag/v0.2.0
 [0.1.0]: https://github.com/KamiNeko/notes/releases/tag/v0.1.0
