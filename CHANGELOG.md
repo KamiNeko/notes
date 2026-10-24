@@ -4,6 +4,10 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Added
+
+- **Trash retention:** `Notes__TrashRetentionDays` (`NOTES_TRASH_RETENTION_DAYS`) deletes notes and notebooks that have been in the trash longer than this many days, once a day. The default `0` keeps them until deleted by hand, as before. The trash view says how long items stay (`GET /api/settings`).
+
 ## [0.2.0] - 2026-10-24
 
 ### Added

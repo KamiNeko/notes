@@ -67,3 +67,5 @@ public record NoteVersionDto(string Id, string NoteId, string Title, string Prev
 public record NoteVersionDetailDto(string Id, string NoteId, string Title, string Body, long UpdatedTime, long CreatedTime);
 
 public record UserDto(string Id, string Email, string DisplayName, bool IsAdmin, long CreatedTime);
+
+public record SettingsDto(int TrashRetentionDays);

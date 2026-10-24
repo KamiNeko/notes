@@ -137,3 +137,11 @@ export interface NoteVersionDetail {
   updatedTime: number;
   createdTime: number;
 }
+
+/**
+ * Server settings the UI shows to the user.
+ */
+export interface ServerSettings {
+  /** Days a note or notebook stays in the trash before it is deleted for good; 0 = until emptied */
+  trashRetentionDays: number;
+}

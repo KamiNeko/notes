@@ -10,6 +10,7 @@ import { TrashedNotebooks } from "@/components/notebooks/TrashedNotebooks";
 import { useTags } from "@/hooks/use-tags";
 import { useNotes, useNote } from "@/hooks/use-notes";
 import { useSearch } from "@/hooks/use-search";
+import { trashRetention, useServerSettings } from "@/hooks/use-settings";
 import { useCreateNote, useUpdateNote } from "@/hooks/use-mutations";
 import { findNotebookById, flattenNotebooks } from "@/lib/notebooks";
 import { toast } from "sonner";
@@ -74,6 +75,8 @@ export function NotesPage() {
   // TanStack queries
   const { data: notebooks } = useNotebooks();
   const { data: trashedNotebooks } = useTrashedNotebooks(isTrashSelected);
+  const { data: settings } = useServerSettings(isTrashSelected);
+  const trashKeeps = trashRetention(settings?.trashRetentionDays);
   const { data: tags } = useTags();
   const notesQuery = useNotes(selectedNotebookId || undefined, selectedTagId || undefined, isTrashSelected);
   const { data: notes, isLoading: isLoadingNotes } = notesQuery;
@@ -188,7 +191,12 @@ export function NotesPage() {
   const emptyState = isTrashSelected
     ? trashedNotebooks?.length
       ? { title: "No notes in the trash", description: undefined }
-      : { title: "Trash is empty", description: "Deleted notes and notebooks appear here." }
+      : {
+          title: "Trash is empty",
+          description: trashKeeps
+            ? `Deleted notes and notebooks stay here for ${trashKeeps}, then they are deleted for good.`
+            : "Deleted notes and notebooks appear here.",
+        }
     : selectedTagId
     ? { title: "No notes with this tag", description: "Add the tag to a note to see it here." }
     : selectedNotebookId
@@ -276,7 +284,9 @@ export function NotesPage() {
               }
               subtitle={
                 isTrashSelected
-                  ? "Deleted notes and notebooks"
+                  ? trashKeeps
+                    ? `Deleted for good after ${trashKeeps}`
+                    : "Deleted notes and notebooks"
                   : selectedTagId
                   ? "Notes with tag"
                   : selectedNotebookId
