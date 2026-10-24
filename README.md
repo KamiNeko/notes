@@ -54,7 +54,7 @@ Not included, on purpose: offline mode, sharing notes with others, and end-to-en
 | 🔎 **Search** | Instant search across titles and content (`Ctrl+K`): all words must match, `"exact phrases"`, `-word` to exclude, and filters `tag:`, `notebook:`, `type:todo`, `iscompleted:0`. |
 | 🕰️ **Version history** | Before an editing session changes a note, its previous state is kept as a version. Preview any version and restore it; the replaced text becomes a version too, so a restore can be undone. Optional retention period. |
 | 📦 **Export** | Download all your notes as a ZIP of Markdown files with front matter, in notebook folders, with attachments and working links. Your notes are never locked in. |
-| 🗑️ **Trash** | Deleted notes and notebooks go to the trash, where you can restore them or delete them permanently. |
+| 🗑️ **Trash** | Deleted notes and notebooks go to the trash, where you can restore them or delete them permanently. Optionally emptied automatically after a number of days. |
 | ⚔️ **Conflict detection** | If a note was changed in another tab or on another device while you edited it, you choose which version to keep. |
 | 👥 **Users** | Administrators add accounts, reset passwords, grant the administrator role and delete users (account menu > *Manage users*). Everyone can change their own password. |
 | 🛟 **No lost typing** | Unsaved text is kept on the device while offline or after the session expires, saves retry when the connection returns, and you can restore a draft later. |
@@ -141,6 +141,7 @@ Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app 
 | `NOTES_TRUST_PROXY` | `Notes__TrustProxy` | `false` | Trust `X-Forwarded-For/-Proto/-Host` from a reverse proxy. |
 | `NOTES_TRUSTED_PROXIES` | `Notes__TrustedProxies` | private networks | Addresses or CIDR ranges the proxy connects from (comma-separated). Only needed when it isn't on a private network. |
 | `NOTES_VERSION_RETENTION_DAYS` | `Notes__VersionRetentionDays` | `0` | Delete versions older than this many days (`0` keeps all). |
+| `NOTES_TRASH_RETENTION_DAYS` | `Notes__TrashRetentionDays` | `0` | Delete notes and notebooks that have been in the trash this many days (`0` keeps them until deleted by hand). |
 | `NOTES_MAX_UPLOAD_MB` | `Notes__MaxUploadMb` | `25` | Largest attachment. |
 | `NOTES_ALLOW_REMOTE_IMAGES` | `Notes__AllowRemoteImages` | `false` | Show `https:` images from other websites in notes. Off by default because each remote image tells its host who opened the note. |
 | | `Notes__VersionIntervalMinutes` | `10` | Edits within this many minutes of the last version don't create another one. |

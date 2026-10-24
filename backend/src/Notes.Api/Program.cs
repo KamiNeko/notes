@@ -40,7 +40,8 @@ builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<SearchService>();
 builder.Services.AddScoped<ResourceService>();
 builder.Services.AddScoped<ExportService>();
-builder.Services.AddHostedService<VersionPruning>();
+builder.Services.AddScoped<TrashService>();
+builder.Services.AddHostedService<Housekeeping>();
 
 builder.Services.AddAuthentication(SessionClaims.Scheme)
     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, SessionAuthenticationHandler>(SessionClaims.Scheme, null);

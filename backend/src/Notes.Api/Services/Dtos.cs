@@ -69,3 +69,4 @@ public record NoteVersionDetailDto(string Id, string NoteId, string Title, strin
 public record UserDto(string Id, string Email, string DisplayName, bool IsAdmin, long CreatedTime);
 
 public record SessionDto(string Id, long CreatedTime, long LastSeenTime, long ExpiresTime, string UserAgent, bool Current);
+public record SettingsDto(int TrashRetentionDays);

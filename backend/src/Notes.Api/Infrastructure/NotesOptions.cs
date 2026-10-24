@@ -38,6 +38,9 @@ public class NotesOptions
     /// <summary>Versions older than this are deleted; 0 keeps them forever.</summary>
     public int VersionRetentionDays { get; set; }
 
+    /// <summary>Notes and notebooks in the trash longer than this are deleted for good; 0 keeps them until the user empties the trash.</summary>
+    public int TrashRetentionDays { get; set; }
+
     /// <summary>Largest attachment accepted, in MB.</summary>
     public int MaxUploadMb { get; set; } = 25;
 
@@ -91,6 +94,7 @@ public static class NotesOptionsValidator
         AtLeast(errors, nameof(options.SessionMaxAgeDays), options.SessionMaxAgeDays, 1);
         AtLeast(errors, nameof(options.VersionIntervalMinutes), options.VersionIntervalMinutes, 0);
         AtLeast(errors, nameof(options.VersionRetentionDays), options.VersionRetentionDays, 0);
+        AtLeast(errors, nameof(options.TrashRetentionDays), options.TrashRetentionDays, 0);
         AtLeast(errors, nameof(options.MaxUploadMb), options.MaxUploadMb, 1);
         AtLeast(errors, nameof(options.RateLimitMax), options.RateLimitMax, 1);
         AtLeast(errors, nameof(options.LoginRateLimitMax), options.LoginRateLimitMax, 1);

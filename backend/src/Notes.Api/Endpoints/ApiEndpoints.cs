@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Notes.Api.Auth;
 using Notes.Api.Infrastructure;
@@ -54,6 +55,8 @@ public static class ApiEndpoints
             return string.IsNullOrWhiteSpace(text) ? Results.Ok(Array.Empty<object>()) : Results.Ok(await search.SearchAsync(user.UserId(), text, ct));
         });
         MapResources(authed.MapGroup("/resources"));
+        // Server settings the client shows to the user (only what the UI needs, nothing about the deployment)
+        authed.MapGet("/settings", (IOptions<NotesOptions> options) => Results.Ok(new SettingsDto(Math.Max(0, options.Value.TrashRetentionDays))));
         // All of the user's notes as a ZIP of Markdown files (CRA: users can take their data elsewhere)
         authed.MapGet("/export", async (HttpContext context, ClaimsPrincipal user, ExportService export, TimeProvider clock, ILoggerFactory loggers, CancellationToken ct) =>
         {

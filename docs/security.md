@@ -73,7 +73,7 @@ Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limi
 
 ## Data protection
 
-- **Deleting data:** notes and notebooks go to the trash first; deleting them from the trash removes them, their versions and tags links from the database. Deleting a user removes all their data, including attachment files. Database backups you made keep the data until you delete them.
+- **Deleting data:** notes and notebooks go to the trash first; deleting them from the trash removes them, their versions and tags links from the database. Set `NOTES_TRASH_RETENTION_DAYS` to empty the trash automatically. Deleting a user removes all their data, including attachment files. Database backups you made keep the data until you delete them.
 - **Version history** keeps earlier states of notes. Set `NOTES_VERSION_RETENTION_DAYS` to delete old versions automatically.
 - **No telemetry.** Notes makes no outgoing connections: no analytics, no update checks, no external fonts or scripts. Remote images in notes are blocked unless you set `NOTES_ALLOW_REMOTE_IMAGES=true`.
 - **Browser storage:** the client keeps only the theme, a few view settings, the signed-in email and unsaved drafts in `localStorage`. Signing out removes the email and the drafts, and the in-memory note cache and loaded attachments are dropped, so the next person at a shared computer finds nothing.

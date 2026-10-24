@@ -10,6 +10,7 @@ import {
   NoteVersion,
   NoteVersionDetail,
   SignInSession,
+  ServerSettings,
 } from "./types";
 import { changePendingWrites, recordNetworkError, recordResponse } from "./connection";
 
@@ -598,6 +599,13 @@ export async function downloadResource(resourceId: string, fileName: string): Pr
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
+ * Server settings the UI shows (e.g. how long the trash keeps items).
+ */
+export async function getSettings(): Promise<ServerSettings> {
+  return request<ServerSettings>("/api/settings");
 }
 
 /**
