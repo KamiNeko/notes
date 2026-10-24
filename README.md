@@ -48,7 +48,7 @@ Not included, on purpose: offline mode, sharing notes with others, and end-to-en
 | 📚 **Notebooks** | Nested notebooks; create, rename, move (into another notebook or to the top level) and delete them. |
 | 📝 **Markdown editor** | CodeMirror editor with *Edit*, *Split* and *Preview* modes, autosave and `Ctrl+S`. Formatting toolbar (also on phones) and shortcuts: `Ctrl+B` bold, `Ctrl+I` italic, `Ctrl+E` code, `Ctrl+K` link. Links to other notes via a search picker or *Copy Markdown link*. |
 | ✨ **Rich rendering** | GitHub-flavored Markdown: tables, task lists, syntax-highlighted code blocks, plus math (KaTeX), Mermaid diagrams, `==highlight==`, `++insert++`, `~sub~` and `^sup^`. HTML notes are shown as sanitized HTML. |
-| 🖼️ **Images & attachments** | Drop, paste or attach files; images are shown inline. |
+| 🖼️ **Images & attachments** | Drop, paste or attach files; images are shown inline. The account menu shows how much space your attachments take. |
 | ✅ **To-dos** | Create to-dos and tick them off, right from the note list. Set, change or clear due dates; overdue to-dos are highlighted. |
 | 🏷️ **Tags** | Tag notes, browse by tag, rename and delete tags. |
 | 🔎 **Search** | Instant search across titles and content (`Ctrl+K`): all words must match, `"exact phrases"`, `-word` to exclude, and filters `tag:`, `notebook:`, `type:todo`, `iscompleted:0`. |
@@ -56,7 +56,7 @@ Not included, on purpose: offline mode, sharing notes with others, and end-to-en
 | 📦 **Export** | Download all your notes as a ZIP of Markdown files with front matter, in notebook folders, with attachments and working links. Your notes are never locked in. |
 | 🗑️ **Trash** | Deleted notes and notebooks go to the trash, where you can restore them or delete them permanently. |
 | ⚔️ **Conflict detection** | If a note was changed in another tab or on another device while you edited it, you choose which version to keep. |
-| 👥 **Users** | Administrators add accounts, reset passwords, grant the administrator role and delete users (account menu > *Manage users*). Everyone can change their own password. |
+| 👥 **Users** | Administrators add accounts, reset passwords, grant the administrator role, set storage limits and delete users (account menu > *Manage users*). Everyone can change their own password. |
 | 🛟 **No lost typing** | Unsaved text is kept on the device while offline or after the session expires, saves retry when the connection returns, and you can restore a draft later. |
 | 🌗 **Light & dark mode** | Switch themes with one click. |
 | 📱 **Responsive** | Works on phones and tablets as well as on the desktop. |
@@ -142,6 +142,7 @@ Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app 
 | `NOTES_TRUSTED_PROXIES` | `Notes__TrustedProxies` | private networks | Addresses or CIDR ranges the proxy connects from (comma-separated). Only needed when it isn't on a private network. |
 | `NOTES_VERSION_RETENTION_DAYS` | `Notes__VersionRetentionDays` | `0` | Delete versions older than this many days (`0` keeps all). |
 | `NOTES_MAX_UPLOAD_MB` | `Notes__MaxUploadMb` | `25` | Largest attachment. |
+| `NOTES_QUOTA_MB` | `Notes__QuotaMb` | `0` | Attachment space per user in MB (`0`: unlimited). Administrators can set another limit per user. |
 | `NOTES_ALLOW_REMOTE_IMAGES` | `Notes__AllowRemoteImages` | `false` | Show `https:` images from other websites in notes. Off by default because each remote image tells its host who opened the note. |
 | | `Notes__VersionIntervalMinutes` | `10` | Edits within this many minutes of the last version don't create another one. |
 | | `Notes__SessionLifetimeDays`, `Notes__SessionMaxAgeDays` | `30`, `90` | A session ends after this many days without use, and at the latest this many days after sign-in. |

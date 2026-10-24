@@ -4,6 +4,10 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Added
+
+- **Storage limits:** `Notes__QuotaMb` limits the attachment space per user (default unlimited); administrators can set another limit per user in *Manage users*, which also shows each account's usage. Uploads past the limit are refused with 413 and a message saying how much is used. The account menu shows the space your attachments take (`GET /api/storage`).
+
 ## [0.2.0] - 2026-10-24
 
 ### Added

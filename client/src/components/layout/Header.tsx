@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { AboutDialog } from "@/components/common/Dialogs";
 import { ChangePasswordDialog } from "@/components/account/ChangePasswordDialog";
 import { UsersDialog } from "@/components/account/UsersDialog";
+import { StorageMeter } from "@/components/account/StorageMeter";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -56,6 +57,7 @@ export function Header({
   const [aboutOpen, setAboutOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Ctrl+K / Cmd+K focuses the search field (or opens the mobile menu that holds it). In the note
   // editor it inserts a link instead; the editor marks the event as handled then.
@@ -171,7 +173,7 @@ export function Header({
         <ThemeToggle />
 
         {/* User Account Menu */}
-        <DropdownMenu>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
@@ -203,6 +205,7 @@ export function Header({
                     {email}
                   </p>
                 )}
+                <StorageMeter enabled={menuOpen} />
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

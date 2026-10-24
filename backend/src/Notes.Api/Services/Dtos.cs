@@ -67,3 +67,9 @@ public record NoteVersionDto(string Id, string NoteId, string Title, string Prev
 public record NoteVersionDetailDto(string Id, string NoteId, string Title, string Body, long UpdatedTime, long CreatedTime);
 
 public record UserDto(string Id, string Email, string DisplayName, bool IsAdmin, long CreatedTime);
+
+/// <summary>An account in the administrators' list: its own storage limit (null: the default) and the space it uses.</summary>
+public record AdminUserDto(string Id, string Email, string DisplayName, bool IsAdmin, long CreatedTime, int? QuotaMb, long UsedBytes);
+
+/// <summary>The space a user's attachments take; <c>QuotaBytes</c> is null when there is no limit.</summary>
+public record StorageDto(long UsedBytes, long? QuotaBytes);

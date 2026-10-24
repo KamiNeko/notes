@@ -112,6 +112,24 @@ export interface UserInfo {
 }
 
 /**
+ * An account in the administrators' list, with its storage limit and the space its attachments take.
+ */
+export interface AdminUser extends UserInfo {
+  /** Attachment limit in MB set for this user (0: unlimited); null uses the server default */
+  quotaMb: number | null;
+  usedBytes: number;
+}
+
+/**
+ * The space the signed-in user's attachments take.
+ */
+export interface StorageUsage {
+  usedBytes: number;
+  /** null when there is no limit */
+  quotaBytes: number | null;
+}
+
+/**
  * An earlier state of a note's title and body, as listed in the version history.
  */
 export interface NoteVersion {
