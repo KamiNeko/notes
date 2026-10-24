@@ -83,3 +83,71 @@ public class ResourceTypesTests
         Assert.Equal("attachment; filename=\"_x_.txt\"; filename*=UTF-8''%22x%22.txt", ResourceTypes.ContentDisposition(false, "\"x\".txt"));
     }
 }
+
+public class ImportParsingTests
+{
+    [Fact]
+    public void Front_matter_is_read_like_the_export_writes_it()
+    {
+        var (front, body) = FrontMatter.Parse("---\r\ntitle: \"Say \\\"hi\\\": now\"\r\ncreated: 2026-01-02T03:04:05.000Z\r\ntags:\r\n  - \"a\"\r\n  - b\r\ncompleted?: yes\r\ndue: 2026-02-01T00:00:00.000Z\r\n---\r\n\r\nBody\n---\nmore");
+        Assert.Equal("Say \"hi\": now", front.Title);
+        Assert.Equal(new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero), front.Created);
+        Assert.Null(front.Updated);
+        Assert.Equal(["a", "b"], front.Tags);
+        Assert.True(front.Completed);
+        Assert.Equal(new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero), front.Due);
+        Assert.Equal("Body\n---\nmore", body);
+    }
+
+    [Theory]
+    [InlineData("No front matter", "No front matter")]
+    [InlineData("---\nunclosed: yes\nbody", "---\nunclosed: yes\nbody")]
+    [InlineData("---\n---\nBody", "Body")]
+    public void Files_without_valid_front_matter_are_all_body(string text, string expectedBody)
+    {
+        var (front, body) = FrontMatter.Parse(text);
+        Assert.Null(front.Title);
+        Assert.Equal(expectedBody, body);
+    }
+
+    [Theory]
+    [InlineData("a/b.md", "a/b.md")]
+    [InlineData("a\\b\\c.md", "a/b/c.md")]
+    [InlineData("./a//b.md", "a/b.md")]
+    [InlineData("../a.md", null)]
+    [InlineData("a/../../b.md", null)]
+    [InlineData("/etc/x.md", null)]
+    [InlineData("C:/x.md", null)]
+    [InlineData("a/\u0001.md", null)]
+    public void Entry_paths_are_normalized_or_refused(string name, string? expected) =>
+        Assert.Equal(expected, ImportService.NormalizePath(name));
+}
+
+public class TotpTests
+{
+    // RFC 6238 appendix B (SHA-1), last six of the eight digits
+    [Theory]
+    [InlineData(59, "287082")]
+    [InlineData(1111111109, "081804")]
+    [InlineData(1234567890, "005924")]
+    [InlineData(2000000000, "279037")]
+    public void Codes_match_the_rfc_test_vectors(long unixSeconds, string expected)
+    {
+        var secret = System.Text.Encoding.ASCII.GetBytes("12345678901234567890");
+        Assert.Equal(expected, Notes.Api.Auth.Totp.Code(secret, Notes.Api.Auth.Totp.StepAt(DateTimeOffset.FromUnixTimeSeconds(unixSeconds))));
+    }
+
+    [Fact]
+    public void Neighbouring_steps_match_once_and_others_never()
+    {
+        var secret = System.Text.Encoding.ASCII.GetBytes("12345678901234567890");
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+        var step = Notes.Api.Auth.Totp.StepAt(now);
+        Assert.Equal(step - 1, Notes.Api.Auth.Totp.Match(secret, Notes.Api.Auth.Totp.Code(secret, step - 1), now, 0));
+        Assert.Equal(step + 1, Notes.Api.Auth.Totp.Match(secret, Notes.Api.Auth.Totp.Code(secret, step + 1), now, 0));
+        Assert.Null(Notes.Api.Auth.Totp.Match(secret, Notes.Api.Auth.Totp.Code(secret, step + 2), now, 0));
+        Assert.Null(Notes.Api.Auth.Totp.Match(secret, Notes.Api.Auth.Totp.Code(secret, step), now, step));
+        Assert.Null(Notes.Api.Auth.Totp.Match(secret, "12345", now, 0));
+        Assert.Equal("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", Notes.Api.Auth.Totp.ToBase32(secret));
+    }
+}

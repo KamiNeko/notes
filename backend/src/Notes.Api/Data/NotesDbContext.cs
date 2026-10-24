@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Notes.Api.Auth;
 
 namespace Notes.Api.Data;
 
@@ -8,6 +9,8 @@ public class NotesDbContext(DbContextOptions<NotesDbContext> options) : DbContex
     public DbSet<User> Users => Set<User>();
 
     public DbSet<Session> Sessions => Set<Session>();
+
+    public DbSet<RecoveryCode> RecoveryCodes => Set<RecoveryCode>();
 
     public DbSet<Notebook> Notebooks => Set<Notebook>();
 
@@ -30,10 +33,17 @@ public class NotesDbContext(DbContextOptions<NotesDbContext> options) : DbContex
             e.Property(u => u.DisplayName).HasMaxLength(200);
         });
 
+        model.Entity<RecoveryCode>(e =>
+        {
+            e.HasIndex(r => new { r.UserId, r.CodeHash }).IsUnique();
+            e.HasOne<User>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         model.Entity<Session>(e =>
         {
             e.HasIndex(s => s.TokenHash).IsUnique();
             e.HasIndex(s => s.UserId);
+            e.Property(s => s.UserAgent).HasMaxLength(SessionService.MaxUserAgentLength);
             e.HasOne(s => s.User).WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 

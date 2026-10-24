@@ -10,7 +10,7 @@ namespace Notes.Api.Services;
 
 /// <summary>
 /// Exports all of a user's notes as a ZIP of Markdown files, so the data can move to another app
-/// (Obsidian, Joplin's "Markdown + Front Matter" import, any editor). Notebooks become folders, each
+/// (Obsidian, any app that imports Markdown with front matter, any editor). Notebooks become folders, each
 /// note a <c>.md</c> file (<c>.html</c> for HTML notes) with YAML front matter (id, dates, tags,
 /// to-do state), and attachments go to <c>_resources/</c>. Links <c>:/&lt;id&gt;</c> to notes and
 /// attachments are rewritten to relative paths. The trash and version history are not exported.
@@ -47,7 +47,8 @@ public partial class ExportService(NotesDbContext db, ResourceService resources,
         if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
     }
 
-    private static string TempDirectory(NotesOptions options) => Path.Combine(Path.GetFullPath(options.DataDirectory), "tmp");
+    /// <summary>Temporary files of exports and imports, in the data directory.</summary>
+    internal static string TempDirectory(NotesOptions options) => Path.Combine(Path.GetFullPath(options.DataDirectory), "tmp");
 
     /// <summary>Writes the export ZIP to <paramref name="output"/>.</summary>
     internal async Task WriteAsync(Guid userId, Stream output, CancellationToken ct = default)

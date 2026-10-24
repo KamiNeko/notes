@@ -102,7 +102,7 @@ describe(":/id#heading links (#93)", () => {
   it("does not rewrite ids that aren't 32 hex characters", () => {
     const container = renderMarkdown(`[Bad](:/${"g".repeat(32)}#x) [Short](:/abc#x)`);
     expect(screen.queryByRole("button")).toBeNull();
-    expect(container.innerHTML).not.toContain("joplin-item");
+    expect(container.innerHTML).not.toContain("note-item");
     expect(container.querySelector("a[href^=':']")).toBeNull();
   });
 

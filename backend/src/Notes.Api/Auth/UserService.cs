@@ -41,10 +41,17 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
         return user;
     }
 
-    public async Task<List<UserDto>> ListAsync(CancellationToken ct = default)
+    /// <summary>Largest storage limit an administrator can set, in MB (about 10 TB).</summary>
+    public const int MaxQuotaMb = 10_000_000;
+
+    /// <summary>All accounts with their storage limits and the space their attachments take.</summary>
+    public async Task<List<AdminUserDto>> ListAsync(CancellationToken ct = default)
     {
         var users = await db.Users.AsNoTracking().OrderBy(u => u.Email).ToListAsync(ct);
-        return users.Select(ToDto).ToList();
+        var used = await db.Resources.GroupBy(r => r.UserId).Select(g => new { g.Key, Size = g.Sum(r => r.Size) }).ToDictionaryAsync(g => g.Key, g => g.Size, ct);
+        return users
+            .Select(u => new AdminUserDto(Ids.Format(u.Id), u.Email, u.DisplayName, u.IsAdmin, Times.ToMs(u.CreatedTime), u.TotpSecret != null, u.QuotaMb, used.GetValueOrDefault(u.Id)))
+            .ToList();
     }
 
     public async Task<User?> FindAsync(Guid id, CancellationToken ct = default) =>
@@ -76,12 +83,19 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
 
     /// <summary>
     /// Changes an account (administrators). A new password signs the user out everywhere, in the same
-    /// transaction as the new hash. The last administrator can't lose the role.
+    /// transaction as the new hash. The last administrator can't lose the role. <paramref name="quotaMb"/>
+    /// sets the user's storage limit (0: unlimited); <paramref name="resetQuota"/> goes back to the default.
     /// </summary>
-    public async Task<UserDto> UpdateAsync(string actor, Guid id, string? password, string? displayName, bool? isAdmin, CancellationToken ct = default)
+    public async Task<UserDto> UpdateAsync(string actor, Guid id, string? password, string? displayName, bool? isAdmin,
+        int? quotaMb = null, bool resetQuota = false, CancellationToken ct = default)
     {
+        if (resetQuota && quotaMb is not null) throw ApiException.BadRequest("Set a storage limit or reset it, not both");
+        if (quotaMb is < 0 or > MaxQuotaMb) throw ApiException.BadRequest($"The storage limit must be between 0 (unlimited) and {MaxQuotaMb} MB");
         var user = await FindAsync(id, ct) ?? throw ApiException.NotFound("User not found");
         if (displayName is not null) user.DisplayName = Titles.Clean(displayName);
+        var newQuota = resetQuota ? null : quotaMb ?? user.QuotaMb;
+        var quotaChanged = newQuota != user.QuotaMb;
+        user.QuotaMb = newQuota;
         var roleChanged = false;
         if (isAdmin is { } admin && admin != user.IsAdmin)
         {
@@ -107,6 +121,7 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
         }
         if (roleChanged) SecurityLog.RoleChanged(log, actor, user.Email, user.IsAdmin);
         if (password is not null) SecurityLog.PasswordReset(log, actor, user.Email);
+        if (quotaChanged) SecurityLog.QuotaChanged(log, actor, user.Email, newQuota switch { null => "the default", 0 => "unlimited", var mb => $"{mb} MB" });
         return ToDto(user);
     }
 
@@ -156,5 +171,5 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
         }
     }
 
-    public static UserDto ToDto(User u) => new(Ids.Format(u.Id), u.Email, u.DisplayName, u.IsAdmin, Times.ToMs(u.CreatedTime));
+    public static UserDto ToDto(User u) => new(Ids.Format(u.Id), u.Email, u.DisplayName, u.IsAdmin, Times.ToMs(u.CreatedTime), u.TotpSecret is not null);
 }

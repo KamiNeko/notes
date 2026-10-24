@@ -9,7 +9,7 @@ sequenceDiagram
     participant A as Notes.Api
     participant T as LoginThrottle
     participant D as PostgreSQL
-    U->>C: email + password
+    U->>C: email + password (+ code)
     C->>A: POST /api/auth/login (Origin: own origin)
     A->>A: rate limit per address (30 / 15 min)
     A->>T: account locked?
@@ -21,13 +21,19 @@ sequenceDiagram
         alt wrong
             A->>T: count failure
             A-->>C: 401 "Invalid email or password"
-        else right
+        else right, two-factor sign-in on and no code or a wrong one
+            A->>T: count failure (only for a wrong code)
+            A-->>C: 401 details.secondFactor, the client asks for the code
+        else right (and the code, if on)
+            A->>D: claim the code's time step, or delete the used recovery code
             A->>D: insert session (SHA-256 of a 32-byte random token)
             A-->>C: 200 { user } + Set-Cookie (HttpOnly, SameSite=Strict)
         end
     end
     Note over A: Every step is written to the security log
 ```
+
+With two-factor sign-in on, the client sends email and password again together with the code, so the server keeps no half-signed-in state. A code from the app is accepted in the current 30-second step and one step either side, and only for a step after the last accepted one; the step is claimed with a conditional update, so two requests with the same code can't both pass.
 
 Every later request carries the cookie. `SessionAuthenticationHandler` looks up the token hash, checks expiry (30 days without use, 90 days at most) and loads the user with their current role. Every few minutes of use it moves the expiry ahead and renews the cookie.
 
@@ -63,7 +69,7 @@ If a save fails because the server is unreachable, the draft stays in `localStor
 ## Attachments
 
 1. The editor uploads a dropped or pasted file with `POST /api/resources` (raw body, name and type in headers) and inserts `![name](:/<id>)` or `[name](:/<id>)`.
-2. `ResourceService` writes it to a temporary file, detects the MIME type (declared type, extension, then magic bytes) and moves it to `attachments/<userId>/<id>`.
+2. `ResourceService` refuses the upload with 413 when the user's storage limit is already reached. Otherwise it writes the file to a temporary file, detects the MIME type (declared type, extension, then magic bytes) and moves it to `attachments/<userId>/<id>`. The row is inserted in a transaction that holds a per-user advisory lock and checks the limit again with the new file's size, so parallel uploads can't pass it together; a refused file is deleted.
 3. The renderer finds `:/<id>` links, loads `GET /api/resources/<id>` with the session and shows it through a `blob:` URL (SVG as a `data:` URL, so opening it can't run scripts). Downloads keep their original file name.
 
 ## Search
@@ -75,6 +81,16 @@ If a save fails because the server is unreachable, the draft stays in `localStor
 ## Export
 
 `GET /api/export` → `ExportService` loads the user's active notebooks, notes with tags, and attachments, computes unique, filesystem-safe paths (`Notebook/Sub/Note.md`, `_resources/file.png`), writes a ZIP into a temporary file in the data directory (each note with YAML front matter, `:/<id>` links rewritten to relative paths) and streams it to the browser. The temporary file is deleted when the download ends; leftovers from a crash are removed on start.
+
+## Import
+
+`POST /api/import` → `ImportService` copies the body into a temporary file in the data directory (a ZIP is read from its end), refuses archives with more than 20,000 entries or that unpack to more than 10 × `Notes__MaxImportMb`, and never unpacks to disk: entry names are only normalized (no absolute paths, no `..`) to name notebooks and resolve links. Hidden files and `__MACOSX/` are ignored, entries larger than `Notes__MaxUploadMb` or with unsafe paths are skipped and reported.
+
+1. Every file that isn't a note (`.md`, `.markdown`, `.html`) is stored through `ResourceService`, like an upload (same MIME detection and limits).
+2. Notes get new ids up front, so relative links between them and to attachments (`](path)`, `src="…"`, `href="…"`) are rewritten to `:/<id>`; web links and unknown paths stay.
+3. In one save, a top-level notebook "Import <date>" is created with a notebook per folder below it, notes with title, dates, tags (joined case-insensitively with existing ones) and to-do state from the front matter.
+
+If anything fails, the attachments created so far are deleted again, so a failed import leaves nothing behind.
 
 ## Trash and restore
 
@@ -88,4 +104,4 @@ If a save fails because the server is unreachable, the draft stays in `localStor
 2. Apply EF Core migrations.
 3. Create the first administrator from `Notes__Admin__*` if there are no users.
 4. Delete leftover export files; seed the demo account if `Notes__SeedDemo` (and log a warning).
-5. Start Kestrel; `VersionPruning` runs once a day if `VersionRetentionDays` > 0.
+5. Start Kestrel; `Housekeeping` runs once a day if `VersionRetentionDays`, `TrashRetentionDays` or `AttachmentCleanupDays` is > 0.

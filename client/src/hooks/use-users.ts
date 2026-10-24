@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { changePassword, createUser, deleteUser, getUsers, updateUser } from "@/lib/api";
-import { UserInfo } from "@/lib/types";
+import { AdminUser } from "@/lib/types";
 
 export const USERS_QUERY_KEY = ["admin-users"] as const;
 
@@ -8,7 +8,7 @@ export const USERS_QUERY_KEY = ["admin-users"] as const;
  * All accounts (administrators only). Only fetched while `enabled` (the user dialog is open).
  */
 export function useUsers(enabled = true) {
-  return useQuery<UserInfo[], Error>({
+  return useQuery<AdminUser[], Error>({
     queryKey: USERS_QUERY_KEY,
     queryFn: getUsers,
     enabled,

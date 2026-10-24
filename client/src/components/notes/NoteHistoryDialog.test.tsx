@@ -53,6 +53,33 @@ describe("NoteHistoryDialog", () => {
     expect(calls.find((c) => c.method === "POST")?.body).toEqual({ baseUpdatedTime: 5000 });
   });
 
+  it("shows what changed from the selected version to the current note", async () => {
+    mockFetch(({ path }) => {
+      if (path === `/api/notes/${NOTE_ID}/versions`) return jsonResponse([{ ...version, preview: "Old text" }]);
+      if (path === `/api/notes/${NOTE_ID}/versions/${VERSION_ID}`) {
+        return jsonResponse({ ...version, title: "Packing", body: "Socks\nOld text\nPassport" });
+      }
+      return undefined;
+    });
+    renderWithProviders(
+      <NoteHistoryDialog note={{ ...note, body: "Socks\nCurrent text\nPassport" }} open onOpenChange={() => undefined} />
+    );
+    fireEvent.click(await screen.findByText("Old text"));
+    await screen.findByRole("heading", { name: "Packing" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Changes" }));
+
+    const lines = await screen.findByRole("list", { name: "Line changes" });
+    expect(Array.from(lines.querySelectorAll("li")).map((li) => li.textContent?.trim())).toEqual([
+      "Socks",
+      "−Removed: Old text",
+      "+Added: Current text",
+      "Passport",
+    ]);
+    expect(screen.getByRole("group", { name: "Title changes" }).textContent).toContain("Packing list");
+    expect(screen.getByRole("button", { name: "Changes" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("says when there are no earlier versions", async () => {
     mockFetch(({ path }) => (path.endsWith("/versions") ? jsonResponse([]) : undefined));
     renderWithProviders(<NoteHistoryDialog note={note} open onOpenChange={() => undefined} />);

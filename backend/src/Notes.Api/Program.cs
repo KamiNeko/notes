@@ -33,6 +33,7 @@ builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddSingleton<SessionCookies>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<TwoFactorService>();
 builder.Services.AddScoped<NotebookService>();
 builder.Services.AddScoped<NoteService>();
 builder.Services.AddScoped<VersionService>();
@@ -40,7 +41,9 @@ builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<SearchService>();
 builder.Services.AddScoped<ResourceService>();
 builder.Services.AddScoped<ExportService>();
-builder.Services.AddHostedService<VersionPruning>();
+builder.Services.AddScoped<TrashService>();
+builder.Services.AddScoped<ImportService>();
+builder.Services.AddHostedService<Housekeeping>();
 
 builder.Services.AddAuthentication(SessionClaims.Scheme)
     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, SessionAuthenticationHandler>(SessionClaims.Scheme, null);

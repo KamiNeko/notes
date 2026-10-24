@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace Notes.Api.Services;
 
 /// <summary>
-/// A parsed search query (Joplin desktop's syntax, as in Joplin Web):
+/// A parsed search query:
 /// <list type="bullet">
 /// <item><c>shopping list</c>: every word must appear in the title or body (any order, case-insensitive)</item>
 /// <item><c>"shopping list"</c>: an exact phrase; an unclosed quote runs to the end</item>

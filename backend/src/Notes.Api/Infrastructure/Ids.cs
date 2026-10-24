@@ -3,8 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 namespace Notes.Api.Infrastructure;
 
 /// <summary>
-/// Ids are sent as 32 lower-case hex characters (<c>Guid.ToString("N")</c>), the same shape Joplin uses,
-/// so notes copied over keep working <c>:/id</c> links.
+/// Ids are sent as 32 lower-case hex characters (<c>Guid.ToString("N")</c>),
+/// the form used in <c>:/id</c> links between notes and to attachments.
 /// </summary>
 public static class Ids
 {

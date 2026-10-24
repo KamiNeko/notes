@@ -8,6 +8,7 @@ import { formatRelativeTime } from "@/lib/format";
 import { cn } from "@kamineko/ui/lib/utils";
 import { useNoteVersion, useNoteVersions, useRestoreNoteVersion } from "@/hooks/use-versions";
 import { MarkdownRenderer } from "@/components/common/MarkdownRenderer";
+import { VersionChanges } from "./VersionChanges";
 import { QueryError } from "@/components/common/QueryError";
 import { Button } from "@kamineko/ui/components/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@kamineko/ui/components/dialog";
@@ -24,13 +25,14 @@ interface NoteHistoryDialogProps {
 
 /**
  * Version history of a note: earlier states (saved before an editing session changed them), each
- * with a rendered preview and Restore. Restoring keeps the replaced text as a version as well, so it
+ * with a rendered preview, the changes from it to the current note, and Restore. Restoring keeps the replaced text as a version as well, so it
  * can be undone from here. Side by side on wide screens; on phones the preview replaces the list.
  */
 export function NoteHistoryDialog({ note, open, onOpenChange }: NoteHistoryDialogProps) {
   const queryClient = useQueryClient();
   const versionsQuery = useNoteVersions(note.id, open);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<"preview" | "changes">("preview");
   const versionQuery = useNoteVersion(note.id, selectedId);
   const restore = useRestoreNoteVersion();
   const versions = versionsQuery.data ?? [];
@@ -157,6 +159,20 @@ export function NoteHistoryDialog({ note, open, onOpenChange }: NoteHistoryDialo
                     Restore this version
                   </Button>
                 </div>
+                <div role="group" aria-label="Show" className="flex items-center gap-1 px-4 py-2 border-b border-border/40">
+                  {(["preview", "changes"] as const).map((option) => (
+                    <Button
+                      key={option}
+                      variant="ghost"
+                      size="sm"
+                      aria-pressed={view === option}
+                      onClick={() => setView(option)}
+                      className={cn("h-7 px-2.5 text-xs", view === option ? "bg-accent text-accent-foreground" : "text-muted-foreground")}
+                    >
+                      {option === "preview" ? "Preview" : "Changes"}
+                    </Button>
+                  ))}
+                </div>
                 <ScrollArea className="flex-1">
                   <div className="px-5 sm:px-8 py-6 space-y-4">
                     {versionQuery.isError ? (
@@ -172,6 +188,8 @@ export function NoteHistoryDialog({ note, open, onOpenChange }: NoteHistoryDialo
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-5/6" />
                       </div>
+                    ) : view === "changes" ? (
+                      <VersionChanges oldTitle={selected.title} oldBody={selected.body} newTitle={note.title} newBody={note.body} />
                     ) : (
                       <>
                         <h2 className="text-2xl font-bold tracking-tight text-foreground">{selected.title || "Untitled Note"}</h2>

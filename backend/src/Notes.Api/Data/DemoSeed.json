@@ -146,7 +146,7 @@
         "books"
       ],
       "html": true,
-      "body": "<div class=\"clip\">\n  <h2>The Case for Slow Travel</h2>\n  <p><em>Saved with the Joplin Web Clipper</em> from <a href=\"https://example.com/slow-travel\">example.com</a></p>\n\n    <p>Stay longer in fewer places. Take the *regional* train, not the _express_.</p>\n\n  <img src=\":/{{id:res-tram}}\" alt=\"Tram 28 in Alfama\">\n  <ul>\n    <li>Rent a flat instead of a hotel room</li>\n    <li>Pick one neighbourhood &amp; learn its bakeries</li>\n  </ul>\n  <p>Related: <a href=\":/{{id:note-lisbon}}\">Lisbon Long Weekend</a></p>\n</div>"
+      "body": "<div class=\"clip\">\n  <h2>The Case for Slow Travel</h2>\n  <p><em>Saved with a web clipper</em> from <a href=\"https://example.com/slow-travel\">example.com</a></p>\n\n    <p>Stay longer in fewer places. Take the *regional* train, not the _express_.</p>\n\n  <img src=\":/{{id:res-tram}}\" alt=\"Tram 28 in Alfama\">\n  <ul>\n    <li>Rent a flat instead of a hotel room</li>\n    <li>Pick one neighbourhood &amp; learn its bakeries</li>\n  </ul>\n  <p>Related: <a href=\":/{{id:note-lisbon}}\">Lisbon Long Weekend</a></p>\n</div>"
     },
     {
       "key": "markdown-extras",
@@ -156,7 +156,7 @@
       "tags": [
         "ideas"
       ],
-      "body": "Markdown extensions beyond GitHub-flavored Markdown, as in Joplin.\n\n## Inline markup\n\n- ==Highlighted== text and ++inserted++ text, next to ~~struck out~~ text\n- Water is H~2~O, and E = mc^2^\n- [ ] Check the ==release notes== for ~~old~~ ++new++ features\n\n## Math\n\nThe roots of $ax^2 + bx + c = 0$ are\n\n$$\nx = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\n$$\n\nAmounts like $5 and $10 stay plain text.\n\n## Diagram\n\n```mermaid\ngraph LR\n  A[Draft] --> B{Review}\n  B -->|Approved| C[Publish]\n  B -->|Changes| A\n```\n"
+      "body": "Markdown extensions beyond GitHub-flavored Markdown.\n\n## Inline markup\n\n- ==Highlighted== text and ++inserted++ text, next to ~~struck out~~ text\n- Water is H~2~O, and E = mc^2^\n- [ ] Check the ==release notes== for ~~old~~ ++new++ features\n\n## Math\n\nThe roots of $ax^2 + bx + c = 0$ are\n\n$$\nx = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\n$$\n\nAmounts like $5 and $10 stay plain text.\n\n## Diagram\n\n```mermaid\ngraph LR\n  A[Draft] --> B{Review}\n  B -->|Approved| C[Publish]\n  B -->|Changes| A\n```\n"
     },
     {
       "key": "todo-passport",

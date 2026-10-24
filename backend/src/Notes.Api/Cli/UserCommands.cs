@@ -11,6 +11,7 @@ namespace Notes.Api.Cli;
 /// docker compose exec notes dotnet Notes.Api.dll users list
 /// docker compose exec -it notes dotnet Notes.Api.dll users add alice@example.com [--admin] [--name "Alice"]
 /// docker compose exec -it notes dotnet Notes.Api.dll users set-password alice@example.com
+/// docker compose exec notes dotnet Notes.Api.dll users reset-2fa alice@example.com
 /// </code>
 /// The password is read from <c>NOTES_PASSWORD</c> or, if unset, from standard input.
 /// </summary>
@@ -49,8 +50,15 @@ public static class UserCommands
                     await users.UpdateAsync("command line", id, ReadPassword(), null, null);
                     Console.WriteLine($"Password changed for {email}; their sessions were ended");
                     return 0;
+                case "reset-2fa" when args.Length >= 3:
+                    var account = UserService.NormalizeEmail(args[2]);
+                    var userId = await services.GetRequiredService<NotesDbContext>().Users.Where(u => u.Email == account).Select(u => (Guid?)u.Id).FirstOrDefaultAsync()
+                        ?? throw ApiException.NotFound($"No user {account}");
+                    await services.GetRequiredService<TwoFactorService>().ResetAsync("command line", userId);
+                    Console.WriteLine($"Two-factor sign-in turned off for {account}; their sessions were ended");
+                    return 0;
                 default:
-                    Console.Error.WriteLine("Usage: users list | users add <email> [--admin] [--name <name>] | users set-password <email>");
+                    Console.Error.WriteLine("Usage: users list | users add <email> [--admin] [--name <name>] | users set-password <email> | users reset-2fa <email>");
                     return 2;
             }
         }

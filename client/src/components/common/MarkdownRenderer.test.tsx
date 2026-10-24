@@ -55,7 +55,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe("Joplin resource images", () => {
+describe("attachment images", () => {
   it.each([
     ["Markdown", `![Cat](:/${RES_ID})`],
     ["Markdown with a title", `![Cat](:/${RES_ID} "A cat")`],
@@ -120,8 +120,8 @@ describe("links to other notes", () => {
   });
 
   it("opens external links in a new tab without opener", () => {
-    renderMarkdown("[Joplin](https://joplinapp.org)");
-    const link = screen.getByRole("link", { name: "Joplin" });
+    renderMarkdown("[Example](https://example.org)");
+    const link = screen.getByRole("link", { name: "Example" });
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
   });

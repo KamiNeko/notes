@@ -1,6 +1,6 @@
 /**
- * Remark plugins for the Markdown extensions Joplin renders by default (markdown-it-mark, -ins,
- * -sub and -sup, and KaTeX's dollar rules), so notes look the same as in the Joplin apps:
+ * Remark plugins for the Markdown extensions notes support beyond GitHub-flavored Markdown (the
+ * syntax of markdown-it-mark, -ins, -sub and -sup, and KaTeX's dollar rules):
  *
  * - `==mark==` → <mark>, `++inserted++` → <ins> (delimiter runs like ~~strikethrough~~, inline
  *   Markdown inside is parsed)
@@ -230,10 +230,10 @@ function spanFromMarkdown(name: string, tagName: string, textContent: boolean): 
 }
 
 /**
- * Remark plugin adding Joplin's ==mark==, ++insert++, ~sub~ and ^sup^ syntax.
+ * Remark plugin adding the ==mark==, ++insert++, ~sub~ and ^sup^ syntax.
  * Use together with `remarkGfm` configured with `{ singleTilde: false }`.
  */
-export function remarkJoplinMarkup(this: ProcessorLike) {
+export function remarkInlineMarkup(this: ProcessorLike) {
   const data = this.data();
   (data.micromarkExtensions ??= []).push(
     doubleMarkerSyntax("mark", 61 /* = */),
@@ -250,11 +250,11 @@ export function remarkJoplinMarkup(this: ProcessorLike) {
 }
 
 /**
- * Remark plugin (after remark-math) applying the dollar rules of Joplin's KaTeX plugin to
+ * Remark plugin (after remark-math) applying the dollar rules of markdown-it's KaTeX plugin to
  * `$inline$` math: the formula must not start or end with whitespace and the closing `$` must not
  * be followed by a digit, so "costs $5 and $10" stays text. `$$…$$` within a line is display math.
  */
-export function remarkJoplinMath() {
+export function remarkDollarMath() {
   return (tree: MdastLike, file: { value?: unknown }) => {
     const source = typeof file.value === "string" ? file.value : String(file.value ?? "");
     const walk = (node: MdastLike) => {

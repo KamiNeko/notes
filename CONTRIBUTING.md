@@ -21,7 +21,7 @@ The dev container brings the .NET 10 SDK, Node.js 24 and PostgreSQL 17; the [REA
 - **Note writes keep conflict detection** (`baseUpdatedTime` → 409) and save a version before changing title or body.
 - **Schema changes need an EF migration**; never edit one that was already applied.
 - **New or changed endpoints need a backend test**; security changes a test in `SecurityTests`. The build has to stay free of warnings.
-- **Client:** server state goes through the TanStack Query hooks in `client/src/hooks`, only `lib/api.ts` talks to the backend, styles use the Tailwind tokens. The UI stays in line with [joplin-web](https://github.com/KamiNeko/joplin-web). Both themes and phone width must work.
+- **Client:** server state goes through the TanStack Query hooks in `client/src/hooks`, only `lib/api.ts` talks to the backend, styles use the Tailwind tokens. Both themes and phone width must work.
 - **Shared UI:** generic components and the theme belong in `packages/ui`; it must not import from the app (no `@/`, no API or query code).
 - **Dependencies:** only when really needed, with a license the dependency review allows; commit the updated lock files. New GitHub Actions are pinned by commit SHA, base images by digest.
 - **Never commit secrets**, `.env` or real server URLs. Use the demo account for tests and screenshots.

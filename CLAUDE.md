@@ -1,6 +1,6 @@
 # Notes
 
-Self-hosted Markdown notes app: notebooks, tags, search, attachments, to-dos, version history, multiple users (an administrator adds them, no public registration). A React SPA talks to a .NET 10 backend that stores everything in PostgreSQL. Deployed as a Docker Compose stack (app + Postgres) in a Proxmox LXC. The UI came from [joplin-web](https://github.com/KamiNeko/joplin-web) and should stay 1:1 with it.
+Self-hosted Markdown notes app: notebooks, tags, search, attachments, to-dos, version history, multiple users (an administrator adds them, no public registration). A React SPA talks to a .NET 10 backend that stores everything in PostgreSQL. Deployed as a Docker Compose stack (app + Postgres) in a Proxmox LXC.
 
 Security is a first-class requirement and the project follows the EU Cyber Resilience Act. Read the architecture documentation ([docs/architecture/](docs/architecture/README.md), arc42) before touching the data model, sessions/security, versions, search, export or the REST API, and [docs/security.md](docs/security.md) plus [docs/cra.md](docs/cra.md) before touching authentication, logging, dependencies, the build or releases.
 
@@ -10,7 +10,7 @@ Security is a first-class requirement and the project follows the EU Cyber Resil
   - `src/Notes.Api/`: minimal APIs + EF Core (Npgsql, snake_case). `Data/` (entities, DbContext, migrations, demo seed), `Auth/`, `Services/`, `Endpoints/ApiEndpoints.cs`, `Infrastructure/`, `Cli/`.
   - `tests/Notes.Api.Tests/`: xUnit v3 integration tests through `NotesApiFactory` (fresh Postgres database per test class, `FakeTimeProvider`).
 - `package.json` at the root: npm workspaces (`client`, `packages/ui`) with one `package-lock.json`; run `npm ci` in the root.
-- `packages/ui/`: shared UI package `@kamineko/ui` (ADR-12): shadcn/ui components (`src/components/`, generated then adapted, relative imports), `theme.css` (tokens for both themes, Tailwind mapping, base styles), `ThemeProvider`/`ThemeToggle`, `use-theme`, `use-mobile`, `cn`. Ships TypeScript sources, no build. Must not import from the app. Tests next to the code (Vitest, jsdom).
+- `packages/ui/`: shared UI package `@kamineko/ui` (ADR-14): shadcn/ui components (`src/components/`, generated then adapted, relative imports), `theme.css` (tokens for both themes, Tailwind mapping, base styles), `ThemeProvider`/`ThemeToggle`, `use-theme`, `use-mobile`, `cn`. Ships TypeScript sources, no build. Must not import from the app. Tests next to the code (Vitest, jsdom).
 - `client/`: React 19 + Vite + TypeScript, Tailwind 4, TanStack Query, CodeMirror 6; imports the UI kit as `@kamineko/ui/components/<name>`, `@kamineko/ui/lib/utils` etc. Import alias `@/` → `client/src/`. Tests next to the code as `*.test.ts(x)` (Vitest + Testing Library, jsdom); `src/test/` has the `fetch` stub and `renderWithProviders`. Playwright smoke tests in `client/e2e/`.
 - `docker/Dockerfile` (client build → `dotnet publish` → aspnet runtime, client in `wwwroot`), `docker-compose.yml` + `.env.example` (hardened production stack), `.devcontainer/` (SDK, Node 24, Postgres), `.github/workflows/` (`ci.yml`, `codeql.yml`, `scorecard.yml`, `release.yml` on `v*` tags), `.github/dependabot.yml`.
 - `docs/`: `architecture/` (arc42, one file per section), `security.md`, `cra.md`, `deployment.md`; `SECURITY.md`, `CONTRIBUTING.md` and `CHANGELOG.md` at the root, issue and PR templates in `.github/`.
@@ -39,7 +39,7 @@ Node.js 24 (`.nvmrc`): the client tests fail on Node 22 (jsdom `Blob` in `Respon
 - Validate ids with `Ids.TryParse` (32 hex characters). Errors are thrown as `ApiException` and become JSON `{ error, status, details? }`.
 - Note writes keep conflict detection (`baseUpdatedTime` → 409 with `details.current`) and call `VersionService.SnapshotBeforeChangeAsync` before changing title or body.
 - Schema changes need an EF migration (raw SQL for what EF can't express, e.g. trigram indexes). Never edit an applied migration.
-- Notes stay plain Markdown compatible with Joplin's dialect (`:/<id>` links to notes and attachments).
+- Notes stay plain Markdown (GFM plus the extensions in `lib/markdown-extensions.ts`, `:/<id>` links to notes and attachments).
 - New or changed endpoints need a test in `backend/tests`. Keep the build warning-free (`TreatWarningsAsErrors`).
 - Client: server state goes through TanStack Query hooks in `client/src/hooks`; mutations invalidate the affected queries. Only `lib/api.ts` knows the backend, so the UI can later move into a shared library. Style with the Tailwind tokens from `packages/ui/src/styles/theme.css` (app-only tokens in `client/src/index.css`); both themes and phone width must work. Generic components and tokens go into `packages/ui`, app-specific ones stay in `client/`.
 - Match the surrounding code: XML docs / JSDoc on public members, comments only where intent isn't obvious.

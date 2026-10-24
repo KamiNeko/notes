@@ -107,7 +107,7 @@ export function NoteEditor({ note, focusTitle = false, initialDraft = null, onDo
   const conflictRef = useRef(false);
 
   const deferredBody = useDeferredValue(draft.body);
-  // HTML notes (Web Clipper) are edited as raw HTML, like in Joplin desktop; saving keeps markup_language
+  // HTML notes (web clipper pages) are edited as raw HTML; saving keeps markup_language
   const isHtml = note.markupLanguage === MARKUP_HTML;
 
   const clearTimer = () => {
@@ -554,7 +554,7 @@ export function NoteEditor({ note, focusTitle = false, initialDraft = null, onDo
         >
           <FileCode className="h-3.5 w-3.5 mt-px shrink-0" aria-hidden="true" />
           <span>
-            This is an HTML note (for example a page saved with the Joplin Web Clipper). You are editing its raw
+            This is an HTML note (for example a page saved with a web clipper). You are editing its raw
             HTML; Markdown formatting does not apply here.
           </span>
         </div>

@@ -28,7 +28,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe("Joplin inline markup", () => {
+describe("inline markup extensions", () => {
   it("renders ==mark==, ++insert++, ~sub~ and ^sup^", () => {
     const container = renderMarkdown("==marked **bold**== ++added++ H~2~O x^2^");
     expect(container.querySelector("mark")?.innerHTML).toBe("marked <strong>bold</strong>");

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { needsSecondFactor } from "@/lib/api";
 import { Button } from "@kamineko/ui/components/button";
 import { Input } from "@kamineko/ui/components/input";
 import { Label } from "@kamineko/ui/components/label";
@@ -11,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@kamineko/ui/components/card";
-import { BookOpen, Loader2, Lock, Mail, AlertCircle } from "lucide-react";
+import { BookOpen, Loader2, Lock, Mail, AlertCircle, ShieldCheck } from "lucide-react";
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -23,6 +24,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [email, setEmail] = useState(lastEmail ?? "");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Shown once the server says the account signs in with a second factor
+  const [needsCode, setNeedsCode] = useState(false);
+  const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,13 +42,22 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       setErrorMessage("Please enter your password.");
       return;
     }
+    if (needsCode && !code.trim()) {
+      setErrorMessage("Please enter the code from your authenticator app.");
+      return;
+    }
 
     try {
       setIsSubmitting(true);
-      await login(trimmedEmail, password);
+      await login(trimmedEmail, password, needsCode ? code : undefined);
       onSuccess?.();
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (needsSecondFactor(err)) {
+        // The first answer only asks for the code; later ones say it was wrong
+        if (needsCode) setErrorMessage((err as Error).message);
+        setNeedsCode(true);
+        setCode("");
+      } else if (err instanceof Error) {
         setErrorMessage(err.message);
       } else {
         setErrorMessage("Authentication failed. Please check your credentials.");
@@ -128,6 +141,34 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               />
             </div>
           </div>
+
+          {needsCode && (
+            <div className="space-y-2">
+              <div>
+                <Label htmlFor="code" className="text-sm font-medium">
+                  Authentication code
+                </Label>
+              </div>
+              <div className="relative">
+                <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  placeholder="123456"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="pl-9 bg-background/60 focus-visible:ring-primary tracking-widest"
+                  disabled={isSubmitting}
+                  aria-describedby="code-hint"
+                />
+              </div>
+              <p id="code-hint" className="text-xs text-muted-foreground">
+                The 6-digit code from your authenticator app, or one of your recovery codes.
+              </p>
+            </div>
+          )}
         </CardContent>
 
         <CardFooter className="pt-2 pb-8">

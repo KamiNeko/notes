@@ -73,7 +73,7 @@ notes.example.com {
 }
 ```
 
-**Nginx Proxy Manager:** add a proxy host for `notes.example.com` → `http://192.168.1.20:8080`, request a Let's Encrypt certificate, enable *Force SSL* and *HTTP/2*. Under *Advanced*, add `client_max_body_size 30m;` so uploads up to the default 25 MB limit pass.
+**Nginx Proxy Manager:** add a proxy host for `notes.example.com` → `http://192.168.1.20:8080`, request a Let's Encrypt certificate, enable *Force SSL* and *HTTP/2*. Under *Advanced*, add `client_max_body_size 210m;` so uploads (25 MB by default) and imports (200 MB by default) pass; the app enforces its own, smaller limit per request.
 
 **Plain nginx:**
 
@@ -83,7 +83,8 @@ server {
     http2 on;
     server_name notes.example.com;
     # ssl_certificate ... ;
-    client_max_body_size 30m;
+    # Imports up to Notes__MaxImportMb (200 MB); the app limits every other request itself
+    client_max_body_size 210m;
     location / {
         proxy_pass http://192.168.1.20:8080;
         proxy_set_header Host $host;
@@ -142,9 +143,10 @@ docker compose up -d
 docker compose exec notes dotnet Notes.Api.dll users list
 docker compose exec -it notes dotnet Notes.Api.dll users add alice@example.com --name "Alice" [--admin]
 docker compose exec -it notes dotnet Notes.Api.dll users set-password alice@example.com
+docker compose exec notes dotnet Notes.Api.dll users reset-2fa alice@example.com
 ```
 
-The password is read from standard input (or `NOTES_PASSWORD`). Use this if you lock yourself out.
+The password is read from standard input (or `NOTES_PASSWORD`). Use this if you lock yourself out. `reset-2fa` turns off two-factor sign-in for someone who lost their phone and recovery codes, and ends their sessions.
 
 ## Logs and monitoring
 
@@ -179,4 +181,5 @@ To take Notes out of service and remove all data for good:
 | Sign-in works, but saving says *Request origin not allowed* | The URL in the browser differs from what the app sees. Set `NOTES_PUBLIC_URL` to the exact URL, and `NOTES_TRUST_PROXY=true` behind a proxy. |
 | *Too many failed sign-ins for this account* | Ten wrong passwords in 15 minutes. Wait 15 minutes or restart the container. |
 | Uploads fail with *The file is too large* | Raise `NOTES_MAX_UPLOAD_MB` and the proxy's body size limit. |
+| An import fails with *The file is larger than …* or a proxy error 413 | Raise `NOTES_MAX_IMPORT_MB` and the proxy's body size limit. |
 | All users appear to come from one address in the log | The proxy isn't trusted: set `NOTES_TRUST_PROXY=true` (and `NOTES_TRUSTED_PROXIES` if it isn't on a private network). |

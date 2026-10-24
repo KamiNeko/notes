@@ -15,7 +15,18 @@ function mockBackend() {
       return signedIn ? jsonResponse({ user: { id: "u1", email: "demo@example.com", displayName: "", isAdmin: false, createdTime: 0 } }) : jsonResponse({ error: "No session" }, 401);
     }
     if (method === "POST" && path === "/api/auth/login") {
-      const { email, password } = body as { email: string; password: string };
+      const { email, password, code } = body as { email: string; password: string; code?: string };
+      // An account with two-factor sign-in: the code comes in a second request
+      if (email === "tfa@example.com" && password === "demo") {
+        if (code === "123456") {
+          signedIn = true;
+          return jsonResponse({ userId: "u2", user: { id: "u2", email, displayName: "", isAdmin: false, createdTime: 0, twoFactor: true } });
+        }
+        return jsonResponse(
+          { error: code ? "The code is wrong or was already used" : "Enter the code from your authenticator app", status: 401, details: { secondFactor: true } },
+          401
+        );
+      }
       if (email === "demo@example.com" && password === "demo") {
         signedIn = true;
         return jsonResponse({ userId: "u1", ...{ user: { id: "u1", email: "demo@example.com", displayName: "", isAdmin: false, createdTime: 0 } } });
@@ -114,5 +125,26 @@ describe("LoginPage", () => {
 
     expect(await screen.findByText("Signed-in area")).toBeTruthy();
     expect(screen.getByTestId("location").textContent).toBe("/notes");
+  });
+
+  it("asks for the authenticator code when the account has two-factor sign-in", async () => {
+    const calls = mockBackend();
+    renderLogin();
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/auth/check")).toBe(true));
+    expect(screen.queryByLabelText("Authentication code")).toBeNull();
+
+    signIn("tfa@example.com", "demo");
+    const code = await screen.findByLabelText("Authentication code");
+    // Asking for the code is not an error
+    expect(screen.queryByText("Enter the code from your authenticator app")).toBeNull();
+
+    fireEvent.change(code, { target: { value: "000000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    expect(await screen.findByText("The code is wrong or was already used")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Authentication code"), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    expect(await screen.findByText("Signed-in area")).toBeTruthy();
+    expect(calls.filter((c) => c.path === "/api/auth/login").map((c) => (c.body as { code?: string }).code)).toEqual([undefined, "000000", "123456"]);
   });
 });

@@ -22,6 +22,11 @@ updates:
   - package-ecosystem: docker
     directory: /docker
     schedule: { interval: weekly }
+    ignore:
+      # Only even Node.js majors become LTS; odd ones are short-lived. An LTS major is still proposed;
+      # moving to it also means updating .nvmrc, CI, the dev container and engines.
+      - dependency-name: node
+        versions: ["25.x", "27.x", "29.x", "31.x"]
 
   # postgres image in docker-compose.yml (pinned by digest)
   - package-ecosystem: docker-compose

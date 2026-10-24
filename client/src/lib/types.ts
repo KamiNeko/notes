@@ -67,7 +67,7 @@ export interface Note {
   todoDue?: number;
 }
 
-/** `markupLanguage` of HTML notes, e.g. pages copied over from Joplin's Web Clipper */
+/** `markupLanguage` of HTML notes, e.g. pages saved with a web clipper */
 export const MARKUP_HTML = 2;
 
 /**
@@ -109,6 +109,56 @@ export interface UserInfo {
   displayName: string;
   isAdmin: boolean;
   createdTime: number;
+  /** Signs in with a code from an authenticator app as second factor */
+  twoFactor: boolean;
+}
+
+/**
+ * The signed-in user's two-factor sign-in.
+ */
+export interface TwoFactorStatus {
+  enabled: boolean;
+  recoveryCodesLeft: number;
+}
+
+/**
+ * A new authenticator secret during setup: as Base32 to type in, and as otpauth:// URI for the QR code.
+ */
+export interface TwoFactorSetup {
+  secret: string;
+  uri: string;
+}
+
+/**
+ * An account in the administrators' list, with its storage limit and the space its attachments take.
+ */
+export interface AdminUser extends UserInfo {
+  /** Attachment limit in MB set for this user (0: unlimited); null uses the server default */
+  quotaMb: number | null;
+  usedBytes: number;
+}
+
+/**
+ * The space the signed-in user's attachments take.
+ */
+export interface StorageUsage {
+  usedBytes: number;
+  /** null when there is no limit */
+  quotaBytes: number | null;
+}
+
+/**
+ * What an import of a Markdown ZIP created. Everything lands in a new top-level notebook.
+ */
+export interface ImportResult {
+  notebookId: string;
+  notebookTitle: string;
+  notes: number;
+  notebooks: number;
+  attachments: number;
+  /** Up to 100 entries that were left out, with the reason */
+  skipped: { path: string; reason: string }[];
+  skippedCount: number;
 }
 
 /**
@@ -136,4 +186,26 @@ export interface NoteVersionDetail {
   body: string;
   updatedTime: number;
   createdTime: number;
+}
+
+/**
+ * A place where the account is signed in (one browser or API client).
+ */
+export interface SignInSession {
+  id: string;
+  createdTime: number;
+  lastSeenTime: number;
+  expiresTime: number;
+  /** The browser's User-Agent at sign-in, shortened; empty for clients that send none */
+  userAgent: string;
+  /** The session making this request */
+  current: boolean;
+}
+
+/**
+ * Server settings the UI shows to the user.
+ */
+export interface ServerSettings {
+  /** Days a note or notebook stays in the trash before it is deleted for good; 0 = until emptied */
+  trashRetentionDays: number;
 }
