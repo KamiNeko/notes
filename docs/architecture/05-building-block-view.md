@@ -37,10 +37,10 @@ flowchart TB
 | `Program.cs` | Dependency injection, Kestrel limits, forwarded headers, the middleware order, startup (migrations, first administrator, demo seed, cleanup). The arguments `healthcheck` and `users …` run CLI commands instead of the server. |
 | `Endpoints/ApiEndpoints.cs` | All routes as minimal APIs. Handlers only parse, call a service and return a DTO. |
 | `Auth/` | `UserService` (accounts, passwords), `SessionService` (server-side sessions), `SessionCookies`, `SessionAuthenticationHandler` (the `Session` scheme), `LoginThrottle` (account lock). |
-| `Services/` | One service per resource: `NotebookService`, `NoteService`, `VersionService`, `TagService`, `SearchService` (with the `SearchQuery` parser), `ResourceService` (with `ResourceTypes`), `ExportService`. Plus `TextPreview` (list previews), `Titles`, `Dtos.cs` (all JSON shapes) and `VersionPruning` (background job). |
+| `Services/` | One service per resource: `NotebookService`, `NoteService`, `VersionService`, `TagService`, `SearchService` (with the `SearchQuery` parser), `ResourceService` (with `ResourceTypes`), `ExportService`, `ImportService` (with the `FrontMatter` reader), `TrashService` (empties old trash). Plus `TextPreview` (list previews), `Titles`, `Dtos.cs` (all JSON shapes) and `Housekeeping` (daily background job). |
 | `Data/` | Entities, `NotesDbContext`, migrations, the demo seed (`DemoSeed.json`, `DemoSeeder`). |
 | `Infrastructure/` | `NotesOptions`, `ApiException`, `Ids`, `Times`, middleware (errors, Origin check, security headers), `RateLimits`, `TrustedProxies`, `SecurityLog`. |
-| `Cli/` | `UserCommands` (`users list|add|set-password`), `HealthCheck`. |
+| `Cli/` | `UserCommands` (`users list|add|set-password|reset-2fa`), `HealthCheck`. |
 
 Middleware order: forwarded headers (if trusted) → security headers → error handling → rate limiter → Origin check → static files → authentication → authorization → endpoints → `/api` 404 → SPA fallback (`index.html`).
 
@@ -48,7 +48,7 @@ Middleware order: forwarded headers (if trusted) → security headers → error 
 
 | Folder | Responsibility |
 | :--- | :--- |
-| `src/lib/` | `api.ts` (the only module that knows the backend: fetch wrapper, session expiry, all calls), `types.ts`, `drafts.ts`, `connection.ts`, formatting and Markdown helpers. |
+| `src/lib/` | `api.ts` (the only module that knows the backend: fetch wrapper, session expiry, all calls), `types.ts`, `drafts.ts`, `connection.ts`, formatting and Markdown helpers, `line-diff.ts` (line diff for the version history). |
 | `src/hooks/` | TanStack Query hooks per resource; mutations update or invalidate the affected queries. `use-auth.ts` holds the session state. |
 | `src/components/` | `layout/` (header, sidebar, connection status), `notes/` (list, viewer, editor, history), `notebooks/`, `tags/`, `account/` (password and user dialogs), `common/` (Markdown renderer, dialogs), `ui/` (generated shadcn/ui). |
 | `src/pages/` | `LoginPage`, `NotesPage` (all note routes). |
@@ -58,6 +58,7 @@ Middleware order: forwarded headers (if trusted) → security headers → error 
 ```mermaid
 erDiagram
     users ||--o{ sessions : has
+    users ||--o{ recovery_codes : has
     users ||--o{ notebooks : owns
     users ||--o{ notes : owns
     users ||--o{ tags : owns
@@ -72,8 +73,9 @@ erDiagram
 
 | Table | Content |
 | :--- | :--- |
-| `users` | Email (unique, lower-cased), display name, password hash, `is_admin`. Deleting a user cascades to all their rows; the service also removes their attachment folder. |
-| `sessions` | SHA-256 hash of the token, created, last seen and expiry time. |
+| `users` | Email (unique, lower-cased), display name, password hash, `is_admin`, `quota_mb` (storage limit; null uses `Notes__QuotaMb`, 0 is unlimited), the TOTP secret (`totp_secret`, set while two-factor sign-in is on), the secret of a setup in progress (`totp_pending_secret`) and the last accepted time step (`totp_last_step`, against replay). Deleting a user cascades to all their rows; the service also removes their attachment folder. |
+| `sessions` | SHA-256 hash of the token, created, last seen and expiry time, the browser's User-Agent at sign-in (shortened, only for the user's session list; no address). |
+| `recovery_codes` | SHA-256 hashes of the unused two-factor recovery codes (unique per user); a row is deleted when its code is used. |
 | `notebooks` | Tree through `parent_id`; `deleted_time` for the trash. |
 | `notes` | Title, body (Markdown, or HTML with `markup_language = 2`), cached `preview`, to-do fields, `deleted_time`. Trigram GIN indexes on title and body. |
 | `tags`, `note_tags` | Tag titles are unique per user, ignoring case (index on `lower(title)`). |
@@ -92,7 +94,8 @@ All routes except `/api/health` and `/api/auth/login` need a session. Bodies and
 | Route | |
 | :--- | :--- |
 | `GET /api/health` | `{ status, version, commit }` |
-| `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/check` · `POST /api/auth/password` | Sign in (`{ email, password }` → `{ userId, user }`, plus `sessionId` for API clients; 401 wrong credentials, 429 locked), sign out, current user (`{ valid, user }`), change own password (`{ currentPassword, newPassword }` → 204; 400 wrong current password) |
+| `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/check` · `POST /api/auth/password` | Sign in (`{ email, password, code? }` → `{ userId, user }`; 401 with `details.secondFactor` when two-factor sign-in is on and `code` is missing or wrong; plus `sessionId` for API clients; 401 wrong credentials, 429 locked), sign out, current user (`{ valid, user }`), change own password (`{ currentPassword, newPassword }` → 204; 400 wrong current password) |
+| `GET /api/auth/sessions` · `DELETE /api/auth/sessions/{id}` · `DELETE /api/auth/sessions` | The user's own live sessions (`[{ id, createdTime, lastSeenTime, expiresTime, userAgent, current }]`), end one (204; 404 for a foreign or unknown id; ending the current one clears the cookie), end all others (`{ ended }`) |
 | `GET /api/notebooks` · `GET /api/notebooks/trash` · `POST /api/notebooks/refresh` | Tree of active notebooks (`{ id, title, parentId, children, noteCount, createdTime, updatedTime }[]`, `noteCount` counts direct notes), trashed notebooks (the top of each trashed subtree with `noteCount`, `notebookCount` and `earlierNoteCount`), the tree again (the client's *Refresh*) |
 | `POST /api/notebooks` · `PUT /api/notebooks/{id}` · `DELETE /api/notebooks/{id}[?permanent=true]` · `POST /api/notebooks/{id}/restore` | Create (`{ title, parentId? }` → 201), rename/move (`parentId: ""` moves to the top level; 400 for a move into itself), trash, purge (only from the trash, else 409), restore (409 when not in the trash). Trash, purge and restore answer the affected `{ notebooks, notes }` counts |
 | `GET /api/notes?notebookId=&tagId=&isTrash=` | Note list (previews, no bodies) |
@@ -102,5 +105,10 @@ All routes except `/api/health` and `/api/auth/login` need a session. Bodies and
 | `GET /api/tags` · `PUT /api/tags/{id}` · `DELETE /api/tags/{id}` | Tags with counts of active notes, rename (409 when the title is taken, case-insensitively), delete (→ `{ notes }`, how many notes had it) |
 | `GET /api/search?q=` | Results with `matches { inTitle, inBody, snippet, terms }` |
 | `POST /api/resources` · `GET /api/resources/{id}` · `DELETE /api/resources/{id}` | Upload (raw body; `X-File-Name` URI-encoded, `X-File-Type`), download, delete |
+| `GET /api/settings` | Settings the UI shows: `{ trashRetentionDays }` |
 | `GET /api/export` | ZIP of all active notes as Markdown with attachments |
-| `GET/POST /api/admin/users` · `PUT/DELETE /api/admin/users/{id}` | Administrators only: list, create, change (name, role, password), delete. The last administrator can't be demoted or deleted; nobody can delete their own account. |
+| `GET /api/auth/2fa` · `POST /api/auth/2fa/setup` · `POST /api/auth/2fa/enable` · `POST /api/auth/2fa/recovery-codes` · `POST /api/auth/2fa/disable` | Own two-factor sign-in: status (`{ enabled, recoveryCodesLeft }`); start setup (`{ password }` → `{ secret, uri }`, the `otpauth://` URI for the QR code); turn on (`{ code }` → `{ recoveryCodes }`); new recovery codes (`{ password }` → `{ recoveryCodes }`); turn off (`{ password, code }` → 204, the code may be a recovery code). Wrong password or code 400, wrong state 409. Sign-in rate limit. |
+| `GET /api/storage` | `{ usedBytes, quotaBytes }`: space the user's attachments take and their limit (`null`: unlimited). Uploads past the limit get 413 with `details: { usedBytes, quotaBytes }`. |
+| `POST /api/import` | Raw ZIP body (at most `Notes__MaxImportMb`) → 201 `{ notebookId, notebookTitle, notes, notebooks, attachments, skipped: [{ path, reason }], skippedCount }`. 400 for a damaged or non-ZIP file, 413 when it is too large or unpacks to too much. |
+| `GET/POST /api/admin/users` · `PUT/DELETE /api/admin/users/{id}` | Administrators only: list (with `quotaMb` and `usedBytes`), create, change (name, role, password, storage limit via `quotaMb` or `resetQuota`), delete. The last administrator can't be demoted or deleted; nobody can delete their own account. |
+| `DELETE /api/admin/users/{id}/2fa` | Administrators only: turn off a user's two-factor sign-in and end their sessions (204; 409 when it is off). |

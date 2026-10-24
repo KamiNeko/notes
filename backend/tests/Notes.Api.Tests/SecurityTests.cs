@@ -198,9 +198,9 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         Assert.Empty(NotesOptionsValidator.Validate(new NotesOptions { CookieSecure = "True", PublicUrl = "https://notes.example.com", TrustProxy = true, TrustedProxies = "10.0.0.1" }));
         var errors = NotesOptionsValidator.Validate(new NotesOptions
         {
-            PublicUrl = "ftp://notes.example.com", MaxUploadMb = 0, VersionRetentionDays = -1, TrustProxy = true, TrustedProxies = "proxy",
+            PublicUrl = "ftp://notes.example.com", MaxUploadMb = 0, MaxImportMb = 0, VersionRetentionDays = -1, QuotaMb = -1, TrustProxy = true, TrustedProxies = "proxy",
         });
-        Assert.Equal(4, errors.Count);
+        Assert.Equal(6, errors.Count);
     }
 
     [Fact]
@@ -252,6 +252,110 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         var exported = Assert.Single(log.Entries, e => e.EventId == 1050);
         Assert.Equal(SecurityLog.Category, exported.Category);
         Assert.Contains(userId, exported.Message);
+    }
+
+    [Fact]
+    public async Task Storage_limit_changes_are_logged_as_a_security_event()
+    {
+        var log = new LogCollector();
+        using var logged = app.WithWebHostBuilder(builder => builder
+            .UseSetting("Logging:LogLevel:Notes.Security", "Information")
+            .ConfigureLogging(logging => logging.AddProvider(log)));
+        using var admin = logged.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        admin.DefaultRequestHeaders.Add("Origin", "http://localhost");
+        (await admin.PostAsJsonAsync("/api/auth/login", new { email = "admin@notes.test", password = "admin-password" })).EnsureSuccessStatusCode();
+        var email = $"quota-{Guid.NewGuid():N}@notes.test";
+        var userId = (await admin.PostJsonAsync("/api/admin/users", new { email, password = "user-password" }, HttpStatusCode.Created)).Str("id");
+
+        await admin.PutJsonAsync($"/api/admin/users/{userId}", new { quotaMb = 250 });
+        await admin.PutJsonAsync($"/api/admin/users/{userId}", new { quotaMb = 250 });
+        await admin.PutJsonAsync($"/api/admin/users/{userId}", new { resetQuota = true });
+
+        var changes = log.Entries.Where(e => e.EventId == 1024).Select(e => e.Message).ToList();
+        Assert.Equal([$"admin@notes.test set the storage limit of {email} to 250 MB", $"admin@notes.test set the storage limit of {email} to the default"], changes);
+    }
+
+    [Fact]
+    public async Task Imports_are_logged_as_a_security_event()
+    {
+        var log = new LogCollector();
+        using var logged = app.WithWebHostBuilder(builder => builder
+            .UseSetting("Logging:LogLevel:Notes.Security", "Information")
+            .ConfigureLogging(logging => logging.AddProvider(log)));
+        using var client = logged.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        client.DefaultRequestHeaders.Add("Origin", "http://localhost");
+        (await client.PostAsJsonAsync("/api/auth/login", new { email = "admin@notes.test", password = "admin-password" })).EnsureSuccessStatusCode();
+        var userId = (await client.GetJsonAsync("/api/auth/check")).GetProperty("user").Str("id");
+        using var zip = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zip, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            using var writer = new StreamWriter(archive.CreateEntry("Note.md").Open());
+            writer.Write("Imported");
+        }
+
+        (await client.PostAsync("/api/import", new ByteArrayContent(zip.ToArray()))).EnsureSuccessStatusCode();
+
+        var imported = Assert.Single(log.Entries, e => e.EventId == 1051);
+        Assert.Equal(SecurityLog.Category, imported.Category);
+        Assert.Contains($"{userId} imported 1 notes and 0 attachments", imported.Message);
+    }
+
+    [Fact]
+    public async Task Two_factor_changes_and_failures_are_logged_as_security_events()
+    {
+        var log = new LogCollector();
+        using var logged = app.WithWebHostBuilder(builder => builder
+            .UseSetting("Logging:LogLevel:Notes.Security", "Information")
+            .ConfigureLogging(logging => logging.AddProvider(log)));
+        HttpClient Browser()
+        {
+            var client = logged.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+            client.DefaultRequestHeaders.Add("Origin", "http://localhost");
+            return client;
+        }
+        using var admin = Browser();
+        (await admin.PostAsJsonAsync("/api/auth/login", new { email = "admin@notes.test", password = "admin-password" })).EnsureSuccessStatusCode();
+        var email = $"tfa-log-{Guid.NewGuid():N}@notes.test";
+        var userId = (await admin.PostJsonAsync("/api/admin/users", new { email, password = "user-password" }, HttpStatusCode.Created)).Str("id");
+        using var user = Browser();
+        (await user.PostAsJsonAsync("/api/auth/login", new { email, password = "user-password" })).EnsureSuccessStatusCode();
+        var secret = await user.PostJsonAsync("/api/auth/2fa/setup", new { password = "user-password" });
+        var key = Base32Decode(secret.Str("secret"));
+        var codes = (await user.PostJsonAsync("/api/auth/2fa/enable", new { code = Totp.Code(key, Totp.StepAt(app.Clock.GetUtcNow())) }))
+            .GetProperty("recoveryCodes").EnumerateArray().Select(c => c.GetString()!).ToList();
+
+        using (var attempt = Browser())
+        {
+            await attempt.PostAsJsonAsync("/api/auth/login", new { email, password = "user-password", code = "000000" });
+            (await attempt.PostAsJsonAsync("/api/auth/login", new { email, password = "user-password", code = codes[0] })).EnsureSuccessStatusCode();
+        }
+        await user.PostJsonAsync("/api/auth/2fa/recovery-codes", new { password = "user-password" });
+        await admin.DeleteJsonAsync($"/api/admin/users/{userId}/2fa", HttpStatusCode.NoContent);
+
+        var events = log.Entries.Where(e => e.Category == SecurityLog.Category).ToList();
+        Assert.Contains(events, e => e.EventId == 1011 && e.Message.Contains(userId));
+        Assert.Contains(events, e => e.EventId == 1007 && e.Message.Contains(email));
+        Assert.Contains(events, e => e.EventId == 1006 && e.Message.Contains(email));
+        Assert.Contains(events, e => e.EventId == 1013 && e.Message.Contains(userId));
+        Assert.Contains(events, e => e.EventId == 1025 && e.Message == $"admin@notes.test turned off two-factor sign-in for {email}; all their sessions were ended");
+        Assert.DoesNotContain(events, e => e.Message.Contains(codes[0]) || e.Message.Contains(secret.Str("secret")));
+    }
+
+    private static byte[] Base32Decode(string text)
+    {
+        var bytes = new List<byte>();
+        int buffer = 0, bits = 0;
+        foreach (var c in text)
+        {
+            buffer = (buffer << 5) | "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".IndexOf(c);
+            bits += 5;
+            if (bits >= 8)
+            {
+                bytes.Add((byte)(buffer >> (bits - 8)));
+                bits -= 8;
+            }
+        }
+        return [.. bytes];
     }
 
     /// <summary>Keeps every log entry in memory, for assertions on the security log.</summary>

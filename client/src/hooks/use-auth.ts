@@ -25,7 +25,8 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   email: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** `code`: the authenticator or recovery code, for accounts with two-factor sign-in */
+  login: (email: string, password: string, code?: string) => Promise<void>;
   logout: () => Promise<void>;
   /** The signed-in account (null while signed out) */
   user: UserInfo | null;
@@ -82,10 +83,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, code?: string) => {
       setIsLoading(true);
       try {
-        const { user: signedIn } = await apiLogin(email, password);
+        const { user: signedIn } = await apiLogin(email, password, code);
         signedInRef.current = true;
         // Never show data cached for a previous session
         queryClient.clear();

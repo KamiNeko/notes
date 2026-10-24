@@ -9,6 +9,13 @@ import {
   UserInfo,
   NoteVersion,
   NoteVersionDetail,
+  SignInSession,
+  ServerSettings,
+  AdminUser,
+  StorageUsage,
+  ImportResult,
+  TwoFactorSetup,
+  TwoFactorStatus,
 } from "./types";
 import { changePendingWrites, recordNetworkError, recordResponse } from "./connection";
 
@@ -202,14 +209,62 @@ async function send<T>(endpoint: string, init: RequestInit, skipAuthRedirect: bo
 }
 
 /**
- * Authenticates user with email and password. The backend sets the session cookie.
+ * Authenticates user with email and password, plus `code` (authenticator or recovery code) for accounts
+ * with two-factor sign-in. The backend sets the session cookie. When a code is needed or wrong, the
+ * ApiError passes `needsSecondFactor`.
  */
-export async function login(email: string, password: string): Promise<LoginResponse> {
+export async function login(email: string, password: string, code?: string): Promise<LoginResponse> {
   return request<LoginResponse>("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, code: code || undefined }),
     skipAuthRedirect: true,
   });
+}
+
+/**
+ * Whether a failed login asks for the second factor (the password was right).
+ */
+export function needsSecondFactor(err: unknown): boolean {
+  if (!(err instanceof ApiError) || err.status !== 401) return false;
+  const details = (err.data as { details?: { secondFactor?: unknown } } | undefined)?.details;
+  return details?.secondFactor === true;
+}
+
+/**
+ * The signed-in user's two-factor status.
+ */
+export async function getTwoFactorStatus(): Promise<TwoFactorStatus> {
+  return request<TwoFactorStatus>("/api/auth/2fa");
+}
+
+/**
+ * Starts two-factor setup (needs the password): a new secret, confirmed with enableTwoFactor.
+ */
+export async function startTwoFactorSetup(password: string): Promise<TwoFactorSetup> {
+  return request<TwoFactorSetup>("/api/auth/2fa/setup", { method: "POST", body: JSON.stringify({ password }) });
+}
+
+/**
+ * Turns two-factor sign-in on with a code from the new secret; returns the recovery codes (shown once).
+ */
+export async function enableTwoFactor(code: string): Promise<string[]> {
+  const result = await request<{ recoveryCodes: string[] }>("/api/auth/2fa/enable", { method: "POST", body: JSON.stringify({ code }) });
+  return result.recoveryCodes;
+}
+
+/**
+ * Replaces the recovery codes (needs the password); the old ones stop working.
+ */
+export async function newRecoveryCodes(password: string): Promise<string[]> {
+  const result = await request<{ recoveryCodes: string[] }>("/api/auth/2fa/recovery-codes", { method: "POST", body: JSON.stringify({ password }) });
+  return result.recoveryCodes;
+}
+
+/**
+ * Turns two-factor sign-in off (needs the password and a current or recovery code).
+ */
+export async function disableTwoFactor(password: string, code: string): Promise<void> {
+  await request("/api/auth/2fa/disable", { method: "POST", body: JSON.stringify({ password, code }) });
 }
 
 /**
@@ -241,6 +296,7 @@ function readUser(data: unknown): UserInfo | null {
     displayName: typeof user.displayName === "string" ? user.displayName : "",
     isAdmin: user.isAdmin === true,
     createdTime: typeof user.createdTime === "number" ? user.createdTime : 0,
+    twoFactor: user.twoFactor === true,
   };
 }
 
@@ -584,6 +640,24 @@ export async function uploadResource(file: File): Promise<UploadedResource> {
 }
 
 /**
+ * How much space the signed-in user's attachments take, and their limit.
+ */
+export async function getStorage(): Promise<StorageUsage> {
+  return request<StorageUsage>("/api/storage");
+}
+
+/**
+ * Imports a ZIP of Markdown files (the export's format, or e.g. an Obsidian vault) into a new notebook.
+ */
+export async function importNotes(file: File): Promise<ImportResult> {
+  return request<ImportResult>("/api/import", {
+    method: "POST",
+    body: file,
+    headers: { "Content-Type": "application/zip" },
+  });
+}
+
+/**
  * Downloads a resource (attachment) with the session and saves it under the given name.
  */
 export async function downloadResource(resourceId: string, fileName: string): Promise<void> {
@@ -597,6 +671,13 @@ export async function downloadResource(resourceId: string, fileName: string): Pr
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
+ * Server settings the UI shows (e.g. how long the trash keeps items).
+ */
+export async function getSettings(): Promise<ServerSettings> {
+  return request<ServerSettings>("/api/settings");
 }
 
 /**
@@ -625,14 +706,40 @@ export async function restoreNoteVersion(noteId: string, versionId: string, base
 }
 
 // ---------------------------------------------------------------------------
+// Own sessions
+// ---------------------------------------------------------------------------
+
+/**
+ * Lists where the signed-in user is signed in, most recently used first.
+ */
+export async function getSessions(): Promise<SignInSession[]> {
+  return request<SignInSession[]>("/api/auth/sessions");
+}
+
+/**
+ * Signs out one of the user's sessions (another device, or this one).
+ */
+export async function endSession(id: string): Promise<void> {
+  await request(`/api/auth/sessions/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Signs out every session of the user except this one. Returns how many were ended.
+ */
+export async function endOtherSessions(): Promise<number> {
+  const result = await request<{ ended: number }>("/api/auth/sessions", { method: "DELETE" });
+  return result.ended;
+}
+
+// ---------------------------------------------------------------------------
 // User administration (administrators only)
 // ---------------------------------------------------------------------------
 
 /**
  * Lists all accounts.
  */
-export async function getUsers(): Promise<UserInfo[]> {
-  return request<UserInfo[]>("/api/admin/users");
+export async function getUsers(): Promise<AdminUser[]> {
+  return request<AdminUser[]>("/api/admin/users");
 }
 
 /**
@@ -648,13 +755,21 @@ export async function createUser(input: {
 }
 
 /**
- * Changes an account: display name, administrator role or a new password (which signs the user out).
+ * Changes an account: display name, administrator role, a new password (which signs the user out) or the
+ * storage limit (`quotaMb`, 0 for unlimited; `resetQuota` goes back to the server default).
  */
 export async function updateUser(
   id: string,
-  changes: { password?: string; displayName?: string; isAdmin?: boolean }
+  changes: { password?: string; displayName?: string; isAdmin?: boolean; quotaMb?: number; resetQuota?: boolean }
 ): Promise<UserInfo> {
   return request<UserInfo>(`/api/admin/users/${id}`, { method: "PUT", body: JSON.stringify(changes) });
+}
+
+/**
+ * Turns two-factor sign-in off for a user who lost their authenticator and recovery codes; ends their sessions.
+ */
+export async function resetUserTwoFactor(id: string): Promise<void> {
+  await request(`/api/admin/users/${id}/2fa`, { method: "DELETE" });
 }
 
 /**

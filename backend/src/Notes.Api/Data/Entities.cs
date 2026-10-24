@@ -14,9 +14,32 @@ public class User
 
     public bool IsAdmin { get; set; }
 
+    /// <summary>Attachment space in MB set by an administrator (0: unlimited); null uses <c>Notes__QuotaMb</c>.</summary>
+    public int? QuotaMb { get; set; }
+    /// <summary>TOTP secret (RFC 6238) while two-factor sign-in is on; null when it is off.</summary>
+    public byte[]? TotpSecret { get; set; }
+
+    /// <summary>Secret shown during setup, until it is confirmed with a code.</summary>
+    public byte[]? TotpPendingSecret { get; set; }
+
+    /// <summary>Time step of the last accepted code; a code is never accepted twice.</summary>
+    public long TotpLastStep { get; set; }
+
     public DateTimeOffset CreatedTime { get; set; }
 
     public DateTimeOffset UpdatedTime { get; set; }
+}
+
+/// <summary>A one-time recovery code for two-factor sign-in. Only the SHA-256 hash is stored; it is deleted when used.</summary>
+public class RecoveryCode
+{
+    public Guid Id { get; set; }
+
+    public Guid UserId { get; set; }
+
+    public byte[] CodeHash { get; set; } = [];
+
+    public DateTimeOffset CreatedTime { get; set; }
 }
 
 /// <summary>A signed-in browser. Only the SHA-256 hash of the cookie token is stored.</summary>
@@ -35,6 +58,9 @@ public class Session
     public DateTimeOffset LastSeenTime { get; set; }
 
     public DateTimeOffset ExpiresTime { get; set; }
+
+    /// <summary>The browser's User-Agent at sign-in, shortened; shown in the user's session list. No address is stored.</summary>
+    public string UserAgent { get; set; } = "";
 }
 
 /// <summary>A notebook; notebooks nest through <see cref="ParentId"/>.</summary>

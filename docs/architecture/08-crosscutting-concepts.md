@@ -9,6 +9,7 @@ Security is the first quality goal. The operator-facing view (threat model, hard
 - **Passwords:** ASP.NET Core Identity's `PasswordHasher` (PBKDF2-HMAC-SHA512, 210,000 iterations, random salt). Older hashes are upgraded on the next sign-in. 12 to 1024 characters, no composition rules (NIST SP 800-63B). Overlong input is refused before hashing.
 - **Unknown accounts** take the same time as wrong passwords (a dummy hash is computed) and get the same message.
 - **Brute force:** a fixed-window rate limit per client address (`LoginRateLimitMax`, 30 per 15 minutes) and `LoginThrottle`, which locks an account for 15 minutes after `LoginMaxFailures` (10) failures from any address. The lock is in memory and also counts unknown emails, so it doesn't reveal which accounts exist.
+- **Second factor (optional):** TOTP (RFC 6238: HMAC-SHA1, 30-second steps, 6 digits, 160-bit secret) in `Totp`, managed by `TwoFactorService`. Setup needs the password and is confirmed with a code, so a mistyped secret can't lock anyone out. Ten recovery codes (50 bits each) are shown once and stored as SHA-256 hashes. Codes are compared in fixed time, each app code works once, and wrong codes count towards the account lock. Administrators and the CLI can turn it off (ends the sessions). The secret is stored in the database unencrypted, since it must be readable to check codes.
 - **Sessions** are rows in `sessions` holding the SHA-256 hash of a 32-byte random token. They slide (`SessionLifetimeDays`, 30) but end at the latest `SessionMaxAgeDays` (90) after sign-in. A password change ends the user's other sessions; an administrator's reset ends all of them; deleting a user deletes their sessions.
 - **Cookie:** `__Host-notes_session` (Secure, Path=/) over HTTPS or `notes_session` (Path=/api) over HTTP; always `HttpOnly` and `SameSite=Strict`. Two session cookies at once are refused. API clients may send `Authorization: Bearer <token>`; only requests without `Origin` get the token in the login response.
 
@@ -50,7 +51,7 @@ Standard `ILogger` to the console. Security events have their own category, `Not
 
 ## Versions of notes
 
-`VersionService.SnapshotBeforeChangeAsync` runs before every change of title or body. It stores the previous state unless the newest version is younger than `VersionIntervalMinutes`, the note was empty, or the content equals the newest version. `VersionPruning` deletes versions older than `VersionRetentionDays` (0 keeps all).
+`VersionService.SnapshotBeforeChangeAsync` runs before every change of title or body. It stores the previous state unless the newest version is younger than `VersionIntervalMinutes`, the note was empty, or the content equals the newest version. The daily `Housekeeping` job deletes versions older than `VersionRetentionDays` (0 keeps all) and, through `TrashService`, notes and notebooks that have been in the trash longer than `TrashRetentionDays` (0 keeps them; a notebook goes with everything below it, like a manual purge). Last, `ResourceService.DeleteUnusedAsync` deletes attachments older than `AttachmentCleanupDays` that no note, trashed note or version links to (`:/<id>` in the body), and attachment files without a row that are older than that (0 turns it off).
 
 ## Markdown dialect and links
 

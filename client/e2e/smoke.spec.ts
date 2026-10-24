@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, Page, test } from "@playwright/test";
-import { DEMO_EMAIL, demoId, signIn, uniqueWord } from "./helpers";
+import { DEMO_EMAIL, DEMO_PASSWORD, demoId, signIn, totpCode, uniqueWord } from "./helpers";
 
 /** Opens the Reading List notebook and waits until its notes are listed */
 async function openReadingList(page: Page) {
@@ -131,6 +131,8 @@ test("shows a note's version history and restores an earlier version", async ({ 
   const history = page.getByRole("dialog", { name: "Version history" });
   await history.getByRole("button", { name: /Website relaunch/ }).first().click();
   await expect(history.getByRole("heading", { name: "Website relaunch" })).toBeVisible();
+  await history.getByRole("button", { name: "Changes" }).click();
+  await expect(history.getByRole("list", { name: "Line changes" }).getByText("First ideas for the relaunch:")).toBeVisible();
   await history.getByRole("button", { name: "Restore this version" }).click();
 
   await expect(page.getByText("Version restored")).toBeVisible();
@@ -177,6 +179,82 @@ test("exports all notes as a ZIP of Markdown files", async ({ page }) => {
   const zip = await readFile(await (await download).path());
   expect(zip.subarray(0, 2).toString()).toBe("PK");
   expect(zip.includes("Website Relaunch Roadmap.md")).toBe(true);
+});
+
+test("imports the export into a new notebook", async ({ page, baseURL }) => {
+  await signIn(page);
+  const zip = await (await page.request.get("/api/export")).body();
+
+  await page.getByRole("button", { name: "User account menu" }).click();
+  await page.getByRole("menuitem", { name: "Import notes" }).click();
+  const dialog = page.getByRole("dialog", { name: "Import notes" });
+  await dialog.getByLabel("ZIP file").setInputFiles({ name: "export.zip", mimeType: "application/zip", buffer: zip });
+  await dialog.getByRole("button", { name: "Import" }).click();
+  await expect(dialog.getByRole("status")).toContainText(/Imported \d+ notes/);
+  await dialog.getByRole("button", { name: "Open notebook" }).click();
+  await expect(page).toHaveURL(/\/notebooks\/[0-9a-f]{32}$/);
+  const notebookId = page.url().split("/").pop()!;
+
+  try {
+    // The export keeps notes in their notebook folders, so they land in sub-notebooks of the import;
+    // "Import …" sorts before the demo's own notebooks
+    await page.getByRole("complementary").first().getByRole("button", { name: /^Projects/ }).first().click();
+    await expect(page).not.toHaveURL(new RegExp(`/notebooks/(${notebookId}|${demoId("nb-projects")})$`));
+    await expect(page.getByText("Website Relaunch Roadmap")).toBeVisible();
+  } finally {
+    // Leave the demo as it was for the other tests, even when a step above failed
+    const headers = { Origin: new URL(baseURL!).origin };
+    expect((await page.request.delete(`/api/notebooks/${notebookId}`, { headers })).ok()).toBe(true);
+    expect((await page.request.delete(`/api/notebooks/${notebookId}?permanent=true`, { headers })).ok()).toBe(true);
+  }
+});
+
+test("turns on two-factor sign-in, signs in with a recovery code and turns it off", async ({ page }) => {
+  await signIn(page);
+  await page.getByRole("button", { name: "User account menu" }).click();
+  await page.getByRole("menuitem", { name: "Two-factor sign-in" }).click();
+  await page.getByRole("button", { name: "Set up" }).click();
+  await page.getByLabel("Your password").fill(DEMO_PASSWORD);
+  await page.getByRole("button", { name: "Continue" }).click();
+  const key = (await page.getByLabel("Setup key").textContent())!;
+  await page.getByLabel("Code from the app").fill(totpCode(key));
+  await page.getByRole("button", { name: "Turn on" }).click();
+  const list = page.getByRole("list", { name: "Recovery codes" }).getByRole("listitem");
+  await expect(list).toHaveCount(10);
+  const codes = await list.allTextContents();
+
+  try {
+    await page.getByRole("button", { name: "I saved them" }).click();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "User account menu" }).click();
+    await page.getByRole("menuitem", { name: "Sign Out" }).click();
+    await expect(page).toHaveURL(/\/login/);
+
+    await page.getByLabel("Email Address").fill(DEMO_EMAIL);
+    await page.getByLabel("Password").fill(DEMO_PASSWORD);
+    await page.getByRole("button", { name: "Sign In" }).click();
+    await page.getByLabel("Authentication code").fill(codes[0]);
+    await page.getByRole("button", { name: "Sign In" }).click();
+    await expect(page).not.toHaveURL(/\/login/);
+
+    await page.getByRole("button", { name: "User account menu" }).click();
+    await page.getByRole("menuitem", { name: "Two-factor sign-in" }).click();
+    await expect(page.getByText("9 recovery codes left.")).toBeVisible();
+    await page.getByRole("button", { name: "Turn off" }).click();
+    await page.getByLabel("Your password").fill(DEMO_PASSWORD);
+    await page.getByLabel("Code from the app or a recovery code").fill(codes[1]);
+    await page.getByRole("button", { name: "Turn off" }).click();
+    await expect(page.getByRole("button", { name: "Set up" })).toBeVisible();
+  } finally {
+    // Leave the demo account as the other tests expect it, even when a step above failed
+    const status = await page.request.get("/api/auth/2fa");
+    if (status.ok() && (await status.json()).enabled) {
+      await page.request.post("/api/auth/2fa/disable", {
+        data: { password: DEMO_PASSWORD, code: codes[9] },
+        headers: { Origin: new URL(page.url()).origin },
+      });
+    }
+  }
 });
 
 test("navigates on a phone between menu, list and note @phone", async ({ page }) => {

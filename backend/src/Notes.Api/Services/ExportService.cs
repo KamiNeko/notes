@@ -47,7 +47,8 @@ public partial class ExportService(NotesDbContext db, ResourceService resources,
         if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
     }
 
-    private static string TempDirectory(NotesOptions options) => Path.Combine(Path.GetFullPath(options.DataDirectory), "tmp");
+    /// <summary>Temporary files of exports and imports, in the data directory.</summary>
+    internal static string TempDirectory(NotesOptions options) => Path.Combine(Path.GetFullPath(options.DataDirectory), "tmp");
 
     /// <summary>Writes the export ZIP to <paramref name="output"/>.</summary>
     internal async Task WriteAsync(Guid userId, Stream output, CancellationToken ct = default)

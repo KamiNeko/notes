@@ -102,6 +102,16 @@ Each decision is recorded with its context, the decision and its consequences. N
 
 **Consequences.** The export opens in Obsidian, other notes apps that import Markdown with front matter, and any editor. Trash and version history are not part of it.
 
+## ADR-12: Import only the own Markdown export format, into a new notebook
+
+*Accepted, October 2026.*
+
+**Context.** The export (ADR-10) had no way back: moving to another server or restoring one account meant re-creating notes by hand. A Joplin importer (JEX, RAW) would need Joplin's item format and is out of scope.
+
+**Decision.** `POST /api/import` reads the export's format: folders, Markdown/HTML files with the same front matter keys, other files as attachments, relative links. Obsidian vaults and similar folders of Markdown work as a subset. Everything goes into a new top-level notebook, with new ids; nothing existing is merged or overwritten. The archive is read in place, never unpacked to disk, with limits on size, entry count and unpacked size.
+
+**Consequences.** Export and import round-trip notes, notebooks, tags, to-dos, dates, attachments and links. Version history and the trash don't travel, and importing twice creates two copies (deleting the import notebook undoes one). Attachments count against the user's storage like uploads.
+
 ## ADR-11: No end-to-end encryption, offline mode or sharing
 
 *Accepted, October 2026.*
@@ -111,3 +121,13 @@ Each decision is recorded with its context, the decision and its consequences. N
 **Decision.** Not supported. Confidentiality at rest is left to the host (disk encryption).
 
 **Consequences.** A much simpler system. Whoever controls the server can read the notes; this is documented in the security guide.
+
+## ADR-13: Two-factor sign-in with TOTP and recovery codes
+
+*Accepted, October 2026.*
+
+**Context.** A guessed or leaked password gave full access to an account; the only advice was a proxy's forward auth or a VPN. Self-hosters want a second factor that needs no extra service.
+
+**Decision.** Optional time-based one-time passwords (RFC 6238), implemented in a few lines on top of .NET's HMAC instead of a library, with ten one-time recovery codes stored as hashes. The second factor is sent with email and password in the same sign-in request (401 with `details.secondFactor` asks for it), so there is no pending sign-in state. Administrators and the command line can turn it off for a user who lost their phone. Passkeys (WebAuthn) may follow as a second method.
+
+**Consequences.** Works with every authenticator app and needs no new dependency on the server (the client uses a small QR encoder). The TOTP secret must be stored readable; a database copy reveals it, but an attacker also needs the password. It is optional per user, not enforced by the administrator.
