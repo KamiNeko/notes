@@ -67,3 +67,57 @@ public class AdminOptions
 
     public string? Password { get; set; }
 }
+
+/// <summary>
+/// Checks <see cref="NotesOptions"/> on startup. A typo in a setting stops the app with a message
+/// naming the variable, instead of running with a different (often less secure) policy than intended.
+/// </summary>
+public static class NotesOptionsValidator
+{
+    /// <summary>What is wrong with the settings; empty when they are valid.</summary>
+    public static List<string> Validate(NotesOptions options)
+    {
+        var errors = new List<string>();
+        if (!string.IsNullOrEmpty(options.CookieSecure) && options.CookieSecure.ToLowerInvariant() is not ("auto" or "true" or "false"))
+        {
+            errors.Add($"Notes__CookieSecure must be auto, true or false, not '{options.CookieSecure}'");
+        }
+        if (!string.IsNullOrWhiteSpace(options.PublicUrl)
+            && !(Uri.TryCreate(options.PublicUrl, UriKind.Absolute, out var url) && url.Scheme is "http" or "https"))
+        {
+            errors.Add($"Notes__PublicUrl must be an absolute http(s) URL such as https://notes.example.com, not '{options.PublicUrl}'");
+        }
+        AtLeast(errors, nameof(options.SessionLifetimeDays), options.SessionLifetimeDays, 1);
+        AtLeast(errors, nameof(options.SessionMaxAgeDays), options.SessionMaxAgeDays, 1);
+        AtLeast(errors, nameof(options.VersionIntervalMinutes), options.VersionIntervalMinutes, 0);
+        AtLeast(errors, nameof(options.VersionRetentionDays), options.VersionRetentionDays, 0);
+        AtLeast(errors, nameof(options.MaxUploadMb), options.MaxUploadMb, 1);
+        AtLeast(errors, nameof(options.RateLimitMax), options.RateLimitMax, 1);
+        AtLeast(errors, nameof(options.LoginRateLimitMax), options.LoginRateLimitMax, 1);
+        AtLeast(errors, nameof(options.LoginMaxFailures), options.LoginMaxFailures, 1);
+        if (options.TrustProxy)
+        {
+            try
+            {
+                TrustedProxies.Parse(options.TrustedProxies);
+            }
+            catch (InvalidOperationException error)
+            {
+                errors.Add(error.Message);
+            }
+        }
+        return errors;
+    }
+
+    /// <summary>Throws when the settings are invalid, listing every problem.</summary>
+    public static void ThrowIfInvalid(NotesOptions options)
+    {
+        var errors = Validate(options);
+        if (errors.Count > 0) throw new InvalidOperationException("Invalid settings: " + string.Join("; ", errors));
+    }
+
+    private static void AtLeast(List<string> errors, string name, int value, int minimum)
+    {
+        if (value < minimum) errors.Add($"Notes__{name} must be at least {minimum}, not {value}");
+    }
+}

@@ -88,14 +88,8 @@ public class NoteService(NotesDbContext db, TimeProvider clock, NotebookService 
     /// </summary>
     public async Task<NoteDto> UpdateAsync(Guid userId, string id, NoteUpdate changes, CancellationToken ct = default)
     {
-        var noteId = Ids.Parse(id, "note id");
-        var note = await db.Notes.FirstOrDefaultAsync(n => n.Id == noteId && n.UserId == userId, ct)
-            ?? throw ApiException.NotFound($"Note not found: {id}");
-
-        if (!changes.Force && changes.BaseUpdatedTime is { } baseTime && Times.ToMs(note.UpdatedTime) != baseTime)
-        {
-            throw ApiException.Conflict("The note was changed elsewhere", new { current = await DetailAsync(userId, noteId, ct) });
-        }
+        var note = await FindAsync(userId, id, ct);
+        if (!changes.Force) await EnsureUnchangedAsync(note, changes.BaseUpdatedTime, ct);
 
         var now = Times.Now(clock);
         var title = changes.Title is null ? note.Title : Titles.Clean(changes.Title);
@@ -129,7 +123,7 @@ public class NoteService(NotesDbContext db, TimeProvider clock, NotebookService 
 
         note.UpdatedTime = now;
         await db.SaveChangesAsync(ct);
-        return (await DetailAsync(userId, noteId, ct))!;
+        return (await DetailAsync(userId, note.Id, ct))!;
     }
 
     /// <summary>
@@ -140,10 +134,7 @@ public class NoteService(NotesDbContext db, TimeProvider clock, NotebookService 
     {
         var note = await FindAsync(userId, id, ct);
         var version = await versions.FindAsync(userId, note.Id, versionId, ct);
-        if (baseUpdatedTime is { } baseTime && Times.ToMs(note.UpdatedTime) != baseTime)
-        {
-            throw ApiException.Conflict("The note was changed elsewhere", new { current = await DetailAsync(userId, note.Id, ct) });
-        }
+        await EnsureUnchangedAsync(note, baseUpdatedTime, ct);
         var now = Times.Now(clock);
         await versions.SnapshotBeforeChangeAsync(note, now, ct, force: true);
         note.Title = version.Title;
@@ -167,15 +158,8 @@ public class NoteService(NotesDbContext db, TimeProvider clock, NotebookService 
     public async Task<NoteDto> RestoreAsync(Guid userId, string id, CancellationToken ct = default)
     {
         var note = await FindAsync(userId, id, ct);
-        var all = await db.Notebooks.Where(n => n.UserId == userId).ToDictionaryAsync(n => n.Id, ct);
-        var now = Times.Now(clock);
-        var seen = new HashSet<Guid>();
-        for (Guid? cursor = note.NotebookId; cursor is { } nbId && seen.Add(nbId) && all.TryGetValue(nbId, out var notebook); cursor = notebook.ParentId)
-        {
-            if (notebook.DeletedTime is null) continue;
-            notebook.DeletedTime = null;
-            notebook.UpdatedTime = now;
-        }
+        var all = await db.Notebooks.Where(n => n.UserId == userId).ToListAsync(ct);
+        NotebookService.RestoreAncestors(all, note.NotebookId, Times.Now(clock));
         note.DeletedTime = null;
         await db.SaveChangesAsync(ct);
         return (await DetailAsync(userId, note.Id, ct))!;
@@ -229,6 +213,18 @@ public class NoteService(NotesDbContext db, TimeProvider clock, NotebookService 
         var noteId = Ids.Parse(id, "note id");
         return await db.Notes.FirstOrDefaultAsync(n => n.Id == noteId && n.UserId == userId, ct)
             ?? throw ApiException.NotFound($"Note not found: {id}");
+    }
+
+    /// <summary>
+    /// Conflict detection: throws 409 with the current note in <c>details.current</c> when the note was
+    /// changed since <paramref name="baseUpdatedTime"/> (the <c>updatedTime</c> an edit started from).
+    /// </summary>
+    private async Task EnsureUnchangedAsync(Note note, long? baseUpdatedTime, CancellationToken ct)
+    {
+        if (baseUpdatedTime is { } baseTime && Times.ToMs(note.UpdatedTime) != baseTime)
+        {
+            throw ApiException.Conflict("The note was changed elsewhere", new { current = await DetailAsync(note.UserId, note.Id, ct) });
+        }
     }
 
     /// <summary>The API shape of a note, or null when the user has no such note.</summary>

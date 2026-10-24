@@ -1,12 +1,21 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Notes.Api.Auth;
+using Notes.Api.Data;
 using Notes.Api.Infrastructure;
+using Notes.Api.Services;
 
 namespace Notes.Api.Tests;
 
@@ -168,5 +177,102 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         context.Response.Body.Position = 0;
         var body = await JsonDocument.ParseAsync(context.Response.Body);
         Assert.Equal("The file is too large to upload", body.RootElement.Str("error"));
+    }
+
+    [Theory]
+    [InlineData("Notes:CookieSecure", "yes", "Notes__CookieSecure")]
+    [InlineData("Notes:PublicUrl", "notes.example.com", "Notes__PublicUrl")]
+    [InlineData("Notes:SessionLifetimeDays", "0", "Notes__SessionLifetimeDays")]
+    [InlineData("Notes:LoginMaxFailures", "-1", "Notes__LoginMaxFailures")]
+    public void Invalid_settings_stop_the_start_with_a_message_naming_them(string key, string value, string named)
+    {
+        using var broken = app.WithWebHostBuilder(builder => builder.UseSetting(key, value));
+        var error = Assert.Throws<InvalidOperationException>(() => broken.CreateClient());
+        Assert.Contains(named, error.Message);
+    }
+
+    [Fact]
+    public void Valid_settings_pass_and_every_problem_is_listed()
+    {
+        Assert.Empty(NotesOptionsValidator.Validate(new NotesOptions()));
+        Assert.Empty(NotesOptionsValidator.Validate(new NotesOptions { CookieSecure = "True", PublicUrl = "https://notes.example.com", TrustProxy = true, TrustedProxies = "10.0.0.1" }));
+        var errors = NotesOptionsValidator.Validate(new NotesOptions
+        {
+            PublicUrl = "ftp://notes.example.com", MaxUploadMb = 0, VersionRetentionDays = -1, TrustProxy = true, TrustedProxies = "proxy",
+        });
+        Assert.Equal(4, errors.Count);
+    }
+
+    [Fact]
+    public async Task A_password_change_that_fails_to_save_keeps_the_sessions()
+    {
+        using var user = await app.NewUserClientAsync();
+        var id = Ids.Parse((await user.GetJsonAsync("/api/auth/check")).GetProperty("user").Str("id"), "user id");
+        var services = app.Services;
+        var options = new DbContextOptionsBuilder<NotesDbContext>()
+            .UseNpgsql(app.ConnectionString).UseSnakeCaseNamingConvention().AddInterceptors(new FailingSaves()).Options;
+        // A fresh context each time: a failed save leaves the new hash on the tracked user
+        async Task FailingAsync(Func<UserService, Task> change)
+        {
+            await using var db = new NotesDbContext(options);
+            var users = new UserService(db, app.Clock, services.GetRequiredService<IPasswordHasher<User>>(),
+                new ResourceService(db, app.Clock, services.GetRequiredService<IOptions<NotesOptions>>()), services.GetRequiredService<ILoggerFactory>());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => change(users));
+        }
+
+        await FailingAsync(users => users.UpdateAsync("test", id, "a-new-password", null, null));
+        await FailingAsync(users => users.ChangeOwnPasswordAsync(id, Guid.Empty, "user-password", "a-new-password"));
+
+        // Neither the admin reset nor the own change ended the session without changing the password
+        Assert.Equal(HttpStatusCode.OK, (await user.GetAsync("/api/auth/check")).StatusCode);
+        using var again = await app.SignInAsync((await user.GetJsonAsync("/api/auth/check")).GetProperty("user").Str("email"), "user-password");
+    }
+
+    /// <summary>Fails every save, like a database that goes away mid-request.</summary>
+    private sealed class FailingSaves : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken ct = default) =>
+            throw new InvalidOperationException("Simulated database failure");
+    }
+
+    [Fact]
+    public async Task Exports_are_logged_as_a_security_event()
+    {
+        var log = new LogCollector();
+        using var logged = app.WithWebHostBuilder(builder => builder
+            .UseSetting("Logging:LogLevel:Notes.Security", "Information")
+            .ConfigureLogging(logging => logging.AddProvider(log)));
+        using var client = logged.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        client.DefaultRequestHeaders.Add("Origin", "http://localhost");
+        (await client.PostAsJsonAsync("/api/auth/login", new { email = "admin@notes.test", password = "admin-password" })).EnsureSuccessStatusCode();
+        var userId = (await client.GetJsonAsync("/api/auth/check")).GetProperty("user").Str("id");
+
+        (await client.GetAsync("/api/export")).EnsureSuccessStatusCode();
+
+        var exported = Assert.Single(log.Entries, e => e.EventId == 1050);
+        Assert.Equal(SecurityLog.Category, exported.Category);
+        Assert.Contains(userId, exported.Message);
+    }
+
+    /// <summary>Keeps every log entry in memory, for assertions on the security log.</summary>
+    private sealed class LogCollector : ILoggerProvider
+    {
+        public ConcurrentQueue<(string Category, int EventId, string Message)> Entries { get; } = new();
+
+        public ILogger CreateLogger(string categoryName) => new Collector(this, categoryName);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class Collector(LogCollector owner, string category) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+                owner.Entries.Enqueue((category, eventId.Id, formatter(state, exception)));
+        }
     }
 }

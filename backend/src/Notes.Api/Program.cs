@@ -18,6 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var notesSection = builder.Configuration.GetSection(NotesOptions.Section);
 var notesOptions = notesSection.Get<NotesOptions>() ?? new NotesOptions();
+NotesOptionsValidator.ThrowIfInvalid(notesOptions);
 builder.Services.Configure<NotesOptions>(notesSection);
 
 var connectionString = builder.Configuration.GetConnectionString("Notes")
