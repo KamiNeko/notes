@@ -88,4 +88,4 @@ If a save fails because the server is unreachable, the draft stays in `localStor
 2. Apply EF Core migrations.
 3. Create the first administrator from `Notes__Admin__*` if there are no users.
 4. Delete leftover export files; seed the demo account if `Notes__SeedDemo` (and log a warning).
-5. Start Kestrel; `Housekeeping` runs once a day if `VersionRetentionDays` or `TrashRetentionDays` is > 0.
+5. Start Kestrel; `Housekeeping` runs once a day if `VersionRetentionDays`, `TrashRetentionDays` or `AttachmentCleanupDays` is > 0.
