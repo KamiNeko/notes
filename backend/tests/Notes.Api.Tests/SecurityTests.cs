@@ -198,9 +198,9 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         Assert.Empty(NotesOptionsValidator.Validate(new NotesOptions { CookieSecure = "True", PublicUrl = "https://notes.example.com", TrustProxy = true, TrustedProxies = "10.0.0.1" }));
         var errors = NotesOptionsValidator.Validate(new NotesOptions
         {
-            PublicUrl = "ftp://notes.example.com", MaxUploadMb = 0, VersionRetentionDays = -1, TrustProxy = true, TrustedProxies = "proxy",
+            PublicUrl = "ftp://notes.example.com", MaxUploadMb = 0, MaxImportMb = 0, VersionRetentionDays = -1, QuotaMb = -1, TrustProxy = true, TrustedProxies = "proxy",
         });
-        Assert.Equal(4, errors.Count);
+        Assert.Equal(6, errors.Count);
     }
 
     [Fact]
@@ -252,6 +252,52 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         var exported = Assert.Single(log.Entries, e => e.EventId == 1050);
         Assert.Equal(SecurityLog.Category, exported.Category);
         Assert.Contains(userId, exported.Message);
+    }
+
+    [Fact]
+    public async Task Storage_limit_changes_are_logged_as_a_security_event()
+    {
+        var log = new LogCollector();
+        using var logged = app.WithWebHostBuilder(builder => builder
+            .UseSetting("Logging:LogLevel:Notes.Security", "Information")
+            .ConfigureLogging(logging => logging.AddProvider(log)));
+        using var admin = logged.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        admin.DefaultRequestHeaders.Add("Origin", "http://localhost");
+        (await admin.PostAsJsonAsync("/api/auth/login", new { email = "admin@notes.test", password = "admin-password" })).EnsureSuccessStatusCode();
+        var email = $"quota-{Guid.NewGuid():N}@notes.test";
+        var userId = (await admin.PostJsonAsync("/api/admin/users", new { email, password = "user-password" }, HttpStatusCode.Created)).Str("id");
+
+        await admin.PutJsonAsync($"/api/admin/users/{userId}", new { quotaMb = 250 });
+        await admin.PutJsonAsync($"/api/admin/users/{userId}", new { quotaMb = 250 });
+        await admin.PutJsonAsync($"/api/admin/users/{userId}", new { resetQuota = true });
+
+        var changes = log.Entries.Where(e => e.EventId == 1024).Select(e => e.Message).ToList();
+        Assert.Equal([$"admin@notes.test set the storage limit of {email} to 250 MB", $"admin@notes.test set the storage limit of {email} to the default"], changes);
+    }
+
+    [Fact]
+    public async Task Imports_are_logged_as_a_security_event()
+    {
+        var log = new LogCollector();
+        using var logged = app.WithWebHostBuilder(builder => builder
+            .UseSetting("Logging:LogLevel:Notes.Security", "Information")
+            .ConfigureLogging(logging => logging.AddProvider(log)));
+        using var client = logged.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        client.DefaultRequestHeaders.Add("Origin", "http://localhost");
+        (await client.PostAsJsonAsync("/api/auth/login", new { email = "admin@notes.test", password = "admin-password" })).EnsureSuccessStatusCode();
+        var userId = (await client.GetJsonAsync("/api/auth/check")).GetProperty("user").Str("id");
+        using var zip = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zip, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            using var writer = new StreamWriter(archive.CreateEntry("Note.md").Open());
+            writer.Write("Imported");
+        }
+
+        (await client.PostAsync("/api/import", new ByteArrayContent(zip.ToArray()))).EnsureSuccessStatusCode();
+
+        var imported = Assert.Single(log.Entries, e => e.EventId == 1051);
+        Assert.Equal(SecurityLog.Category, imported.Category);
+        Assert.Contains($"{userId} imported 1 notes and 0 attachments", imported.Message);
     }
 
     [Fact]

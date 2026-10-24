@@ -9,6 +9,11 @@ import {
   UserInfo,
   NoteVersion,
   NoteVersionDetail,
+  SignInSession,
+  ServerSettings,
+  AdminUser,
+  StorageUsage,
+  ImportResult,
   TwoFactorSetup,
   TwoFactorStatus,
 } from "./types";
@@ -635,6 +640,24 @@ export async function uploadResource(file: File): Promise<UploadedResource> {
 }
 
 /**
+ * How much space the signed-in user's attachments take, and their limit.
+ */
+export async function getStorage(): Promise<StorageUsage> {
+  return request<StorageUsage>("/api/storage");
+}
+
+/**
+ * Imports a ZIP of Markdown files (the export's format, or e.g. an Obsidian vault) into a new notebook.
+ */
+export async function importNotes(file: File): Promise<ImportResult> {
+  return request<ImportResult>("/api/import", {
+    method: "POST",
+    body: file,
+    headers: { "Content-Type": "application/zip" },
+  });
+}
+
+/**
  * Downloads a resource (attachment) with the session and saves it under the given name.
  */
 export async function downloadResource(resourceId: string, fileName: string): Promise<void> {
@@ -648,6 +671,13 @@ export async function downloadResource(resourceId: string, fileName: string): Pr
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/**
+ * Server settings the UI shows (e.g. how long the trash keeps items).
+ */
+export async function getSettings(): Promise<ServerSettings> {
+  return request<ServerSettings>("/api/settings");
 }
 
 /**
@@ -676,14 +706,40 @@ export async function restoreNoteVersion(noteId: string, versionId: string, base
 }
 
 // ---------------------------------------------------------------------------
+// Own sessions
+// ---------------------------------------------------------------------------
+
+/**
+ * Lists where the signed-in user is signed in, most recently used first.
+ */
+export async function getSessions(): Promise<SignInSession[]> {
+  return request<SignInSession[]>("/api/auth/sessions");
+}
+
+/**
+ * Signs out one of the user's sessions (another device, or this one).
+ */
+export async function endSession(id: string): Promise<void> {
+  await request(`/api/auth/sessions/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Signs out every session of the user except this one. Returns how many were ended.
+ */
+export async function endOtherSessions(): Promise<number> {
+  const result = await request<{ ended: number }>("/api/auth/sessions", { method: "DELETE" });
+  return result.ended;
+}
+
+// ---------------------------------------------------------------------------
 // User administration (administrators only)
 // ---------------------------------------------------------------------------
 
 /**
  * Lists all accounts.
  */
-export async function getUsers(): Promise<UserInfo[]> {
-  return request<UserInfo[]>("/api/admin/users");
+export async function getUsers(): Promise<AdminUser[]> {
+  return request<AdminUser[]>("/api/admin/users");
 }
 
 /**
@@ -699,11 +755,12 @@ export async function createUser(input: {
 }
 
 /**
- * Changes an account: display name, administrator role or a new password (which signs the user out).
+ * Changes an account: display name, administrator role, a new password (which signs the user out) or the
+ * storage limit (`quotaMb`, 0 for unlimited; `resetQuota` goes back to the server default).
  */
 export async function updateUser(
   id: string,
-  changes: { password?: string; displayName?: string; isAdmin?: boolean }
+  changes: { password?: string; displayName?: string; isAdmin?: boolean; quotaMb?: number; resetQuota?: boolean }
 ): Promise<UserInfo> {
   return request<UserInfo>(`/api/admin/users/${id}`, { method: "PUT", body: JSON.stringify(changes) });
 }

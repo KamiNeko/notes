@@ -6,6 +6,12 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ### Added
 
+- **Signed-in devices:** see where your account is signed in (browser and system, last activity) and sign out one device or all others, without changing the password (account menu > *Signed-in devices*, `GET`/`DELETE /api/auth/sessions`). Sessions now keep a shortened User-Agent for this list; no address is stored. Ending sessions is logged as security events 1004 and 1005.
+- **Attachment cleanup:** `Notes__AttachmentCleanupDays` (`NOTES_ATTACHMENT_CLEANUP_DAYS`) deletes, once a day, attachments uploaded more than this many days ago that no note, trashed note or version links to, and attachment files without a database row. Off (`0`) by default.
+- **Trash retention:** `Notes__TrashRetentionDays` (`NOTES_TRASH_RETENTION_DAYS`) deletes notes and notebooks that have been in the trash longer than this many days, once a day. The default `0` keeps them until deleted by hand, as before. The trash view says how long items stay (`GET /api/settings`).
+- **Storage limits:** `Notes__QuotaMb` limits the attachment space per user (default unlimited); administrators can set another limit per user in *Manage users*, which also shows each account's usage. Uploads past the limit are refused with 413 and a message saying how much is used. The account menu shows the space your attachments take (`GET /api/storage`).
+- **Version changes:** the version history has a *Changes* view that shows what changed from the selected version to the current note: the title and a line diff of the text, with unchanged stretches folded.
+- **Import:** account menu > *Import notes* takes a ZIP of Markdown files (Notes' own export, or e.g. an Obsidian vault) and creates its folders as notebooks inside a new notebook, with title, dates, tags and to-do state from the front matter, other files as attachments, and relative links rewritten to the imported notes and attachments (`POST /api/import`, `Notes__MaxImportMb`, default 200). Archives are checked against ZIP bombs and unsafe paths.
 - **Two-factor sign-in:** everyone can turn on a second step with an authenticator app (TOTP, with a QR code), with 10 one-time recovery codes (account menu > *Two-factor sign-in*). Administrators can turn it off for a user who lost their phone (*Manage users*, or `users reset-2fa <email>` on the command line).
 
 ### Security

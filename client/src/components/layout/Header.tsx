@@ -5,7 +5,10 @@ import { getExportUrl } from "@/lib/api";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { AboutDialog } from "@/components/common/Dialogs";
 import { ChangePasswordDialog } from "@/components/account/ChangePasswordDialog";
+import { SessionsDialog } from "@/components/account/SessionsDialog";
 import { UsersDialog } from "@/components/account/UsersDialog";
+import { StorageMeter } from "@/components/account/StorageMeter";
+import { ImportDialog } from "@/components/account/ImportDialog";
 import { TwoFactorDialog } from "@/components/account/TwoFactorDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +28,9 @@ import {
   KeyRound,
   LogOut,
   Menu,
+  MonitorSmartphone,
   Search,
+  Upload,
   ShieldCheck,
   User,
   Users,
@@ -58,6 +63,9 @@ export function Header({
   const [aboutOpen, setAboutOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [twoFactorOpen, setTwoFactorOpen] = useState(false);
 
   // Ctrl+K / Cmd+K focuses the search field (or opens the mobile menu that holds it). In the note
@@ -174,7 +182,7 @@ export function Header({
         <ThemeToggle />
 
         {/* User Account Menu */}
-        <DropdownMenu>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
@@ -206,12 +214,17 @@ export function Header({
                     {email}
                   </p>
                 )}
+                <StorageMeter enabled={menuOpen} />
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setPasswordOpen(true)} className="cursor-pointer flex items-center gap-2">
               <KeyRound className="h-3.5 w-3.5" />
               <span>Change password</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSessionsOpen(true)} className="cursor-pointer flex items-center gap-2">
+              <MonitorSmartphone className="h-3.5 w-3.5" />
+              <span>Signed-in devices</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTwoFactorOpen(true)} className="cursor-pointer flex items-center gap-2">
               <ShieldCheck className="h-3.5 w-3.5" />
@@ -223,6 +236,10 @@ export function Header({
                 <Download className="h-3.5 w-3.5" />
                 <span>Export notes</span>
               </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setImportOpen(true)} className="cursor-pointer flex items-center gap-2">
+              <Upload className="h-3.5 w-3.5" />
+              <span>Import notes</span>
             </DropdownMenuItem>
             {user?.isAdmin && (
               <DropdownMenuItem onClick={() => setUsersOpen(true)} className="cursor-pointer flex items-center gap-2">
@@ -245,6 +262,8 @@ export function Header({
         </DropdownMenu>
         <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
         <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
+        <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
+        <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
         <TwoFactorDialog open={twoFactorOpen} onOpenChange={setTwoFactorOpen} />
         {user?.isAdmin && <UsersDialog open={usersOpen} onOpenChange={setUsersOpen} />}
       </div>

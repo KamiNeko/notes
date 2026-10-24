@@ -102,6 +102,16 @@ Each decision is recorded with its context, the decision and its consequences. N
 
 **Consequences.** The export opens in Obsidian, Joplin and any editor. Trash and version history are not part of it.
 
+## ADR-12: Import only the own Markdown export format, into a new notebook
+
+*Accepted, October 2026.*
+
+**Context.** The export (ADR-10) had no way back: moving to another server or restoring one account meant re-creating notes by hand. A Joplin importer (JEX, RAW) would need Joplin's item format and is out of scope.
+
+**Decision.** `POST /api/import` reads the export's format: folders, Markdown/HTML files with the same front matter keys, other files as attachments, relative links. Obsidian vaults and similar folders of Markdown work as a subset. Everything goes into a new top-level notebook, with new ids; nothing existing is merged or overwritten. The archive is read in place, never unpacked to disk, with limits on size, entry count and unpacked size.
+
+**Consequences.** Export and import round-trip notes, notebooks, tags, to-dos, dates, attachments and links. Version history and the trash don't travel, and importing twice creates two copies (deleting the import notebook undoes one). Attachments count against the user's storage like uploads.
+
 ## ADR-11: No end-to-end encryption, offline mode or sharing
 
 *Accepted, October 2026.*

@@ -23,7 +23,11 @@ services:
       Notes__TrustProxy: ${NOTES_TRUST_PROXY:-false}
       Notes__TrustedProxies: ${NOTES_TRUSTED_PROXIES:-}
       Notes__VersionRetentionDays: ${NOTES_VERSION_RETENTION_DAYS:-0}
+      Notes__TrashRetentionDays: ${NOTES_TRASH_RETENTION_DAYS:-0}
+      Notes__AttachmentCleanupDays: ${NOTES_ATTACHMENT_CLEANUP_DAYS:-0}
       Notes__MaxUploadMb: ${NOTES_MAX_UPLOAD_MB:-25}
+      Notes__QuotaMb: ${NOTES_QUOTA_MB:-0}
+      Notes__MaxImportMb: ${NOTES_MAX_IMPORT_MB:-200}
       Notes__AllowRemoteImages: ${NOTES_ALLOW_REMOTE_IMAGES:-false}
     volumes:
       # Attachments

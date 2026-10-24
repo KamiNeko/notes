@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Loader2, MoreHorizontal, Shield, ShieldCheck, ShieldOff, ShieldX, Trash2, UserPlus } from "lucide-react";
+import { HardDrive, KeyRound, Loader2, MoreHorizontal, Shield, ShieldCheck, ShieldOff, ShieldX, Trash2, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCreateUser, useDeleteUser, useUpdateUser, useUsers } from "@/hooks/use-users";
 import { useResetUserTwoFactor } from "@/hooks/use-two-factor";
-import { UserInfo } from "@/lib/types";
+import { formatBytes } from "@/lib/format";
+import { AdminUser } from "@/lib/types";
 import { ConfirmDialog } from "@/components/common/Dialogs";
 import { QueryError } from "@/components/common/QueryError";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -33,12 +34,13 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const usersQuery = useUsers(open);
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
-  const [resetFor, setResetFor] = useState<UserInfo | null>(null);
-  const [deleteFor, setDeleteFor] = useState<UserInfo | null>(null);
-  const [resetTwoFactorFor, setResetTwoFactorFor] = useState<UserInfo | null>(null);
+  const [resetFor, setResetFor] = useState<AdminUser | null>(null);
+  const [quotaFor, setQuotaFor] = useState<AdminUser | null>(null);
+  const [deleteFor, setDeleteFor] = useState<AdminUser | null>(null);
+  const [resetTwoFactorFor, setResetTwoFactorFor] = useState<AdminUser | null>(null);
   const resetTwoFactor = useResetUserTwoFactor();
 
-  const toggleAdmin = (user: UserInfo) => {
+  const toggleAdmin = (user: AdminUser) => {
     updateUser.mutate(
       { id: user.id, changes: { isAdmin: !user.isAdmin } },
       {
@@ -106,6 +108,7 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">{user.displayName || user.email}</p>
                       {user.displayName && <p className="text-xs text-muted-foreground truncate">{user.email}</p>}
+                      <p className="text-[11px] text-muted-foreground truncate">{storageLabel(user)}</p>
                     </div>
                     {isMe && <Badge variant="outline" className="text-[10px]">You</Badge>}
                     {user.twoFactor && (
@@ -129,6 +132,10 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                         <DropdownMenuItem onClick={() => setResetFor(user)}>
                           <KeyRound className="h-4 w-4" />
                           Set new password
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setQuotaFor(user)}>
+                          <HardDrive className="h-4 w-4" />
+                          Set storage limit
                         </DropdownMenuItem>
                         {user.twoFactor && !isMe && (
                           <DropdownMenuItem onClick={() => setResetTwoFactorFor(user)}>
@@ -161,6 +168,7 @@ export function UsersDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         </ScrollArea>
 
         <SetPasswordDialog user={resetFor} onClose={() => setResetFor(null)} />
+        <SetQuotaDialog user={quotaFor} onClose={() => setQuotaFor(null)} />
         <ConfirmDialog
           open={resetTwoFactorFor !== null}
           onOpenChange={(value) => !value && setResetTwoFactorFor(null)}
@@ -265,7 +273,13 @@ function AddUserForm() {
   );
 }
 
-function SetPasswordDialog({ user, onClose }: { user: UserInfo | null; onClose: () => void }) {
+/** "12 MB used · limit 500 MB" for a row of the user list */
+function storageLabel(user: AdminUser): string {
+  const limit = user.quotaMb === null ? "default limit" : user.quotaMb === 0 ? "no limit" : `limit ${user.quotaMb} MB`;
+  return `${formatBytes(user.usedBytes)} used · ${limit}`;
+}
+
+function SetPasswordDialog({ user, onClose }: { user: AdminUser | null; onClose: () => void }) {
   const updateUser = useUpdateUser();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -328,6 +342,98 @@ function SetPasswordDialog({ user, onClose }: { user: UserInfo | null; onClose: 
               {updateUser.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Set password
             </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SetQuotaDialog({ user, onClose }: { user: AdminUser | null; onClose: () => void }) {
+  const updateUser = useUpdateUser();
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [openFor, setOpenFor] = useState<AdminUser | null>(null);
+
+  // Start from the user's own limit each time the dialog opens
+  if (user !== openFor) {
+    setOpenFor(user);
+    setValue(user?.quotaMb != null ? String(user.quotaMb) : "");
+    setError(null);
+  }
+
+  const save = (changes: { quotaMb?: number; resetQuota?: boolean }) => {
+    if (!user) return;
+    updateUser.mutate(
+      { id: user.id, changes },
+      {
+        onSuccess: () => {
+          toast.success(`Storage limit changed for ${user.email}`);
+          onClose();
+        },
+        onError: (err) => setError(err.message),
+      }
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const mb = Number(value);
+    if (value.trim() === "" || !Number.isInteger(mb) || mb < 0) {
+      setError("Enter a whole number of MB, or 0 for no limit.");
+      return;
+    }
+    save({ quotaMb: mb });
+  };
+
+  return (
+    <Dialog open={user !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Set storage limit</DialogTitle>
+            <DialogDescription>
+              Space for {user?.email}'s attachments. Uploads past the limit are refused; existing files stay.
+            </DialogDescription>
+          </DialogHeader>
+          {error && (
+            <p role="alert" className="text-xs text-destructive">
+              {error}
+            </p>
+          )}
+          <div className="grid gap-1.5">
+            <Label htmlFor="quota-mb">Limit in MB (0 for no limit)</Label>
+            <Input
+              id="quota-mb"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              autoFocus
+              placeholder="Server default"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">{user ? `${formatBytes(user.usedBytes)} in use now.` : null}</p>
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => save({ resetQuota: true })}
+              disabled={updateUser.isPending || user?.quotaMb === null}
+            >
+              Use default
+            </Button>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="ghost" onClick={onClose} disabled={updateUser.isPending}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateUser.isPending || value.trim() === ""}>
+                {updateUser.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Save
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
