@@ -59,7 +59,7 @@
     "postcss": "^8.5.31",
     "remark-parse": "^11.0.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.2",
     "typescript-eslint": "^8.72.0",
     "unified": "^11.0.5",
     "vite": "^8.3.4",
