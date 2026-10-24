@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Notes.Api.Auth;
 
 namespace Notes.Api.Data;
 
@@ -34,6 +35,7 @@ public class NotesDbContext(DbContextOptions<NotesDbContext> options) : DbContex
         {
             e.HasIndex(s => s.TokenHash).IsUnique();
             e.HasIndex(s => s.UserId);
+            e.Property(s => s.UserAgent).HasMaxLength(SessionService.MaxUserAgentLength);
             e.HasOne(s => s.User).WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 

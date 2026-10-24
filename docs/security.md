@@ -17,14 +17,14 @@ Notes is built for a household or a small team on a server you control. It assum
 | :--- | :--- |
 | Password guessing | Per-address rate limit (30 sign-ins per 15 minutes), plus a per-account lock after 10 failed sign-ins in 15 minutes from any address. Unknown accounts are answered exactly like wrong passwords, in the same time. |
 | Stolen database or backup | Passwords are stored as PBKDF2-HMAC-SHA512 hashes (210,000 iterations, salted). Sessions are stored as SHA-256 hashes of the token, so a database copy can't be used to sign in. |
-| Stolen session cookie | The cookie is `HttpOnly` (not readable by scripts), `SameSite=Strict` and, over HTTPS, `Secure` with the `__Host-` prefix. Sessions end after 30 days without use and at most 90 days after sign-in. Changing your password ends your other sessions; an admin's password reset ends all of them. |
+| Stolen session cookie | The cookie is `HttpOnly` (not readable by scripts), `SameSite=Strict` and, over HTTPS, `Secure` with the `__Host-` prefix. Sessions end after 30 days without use and at most 90 days after sign-in. Changing your password ends your other sessions; an admin's password reset ends all of them. Every user can see where they are signed in and sign out a lost device (*Signed-in devices*). |
 | Cross-site request forgery | `SameSite=Strict`, and every write must come from the app's own `Origin`. |
 | Cross-site scripting through note content | Markdown and HTML notes are sanitized before rendering. A strict Content Security Policy (`script-src 'self'`, no inline scripts) blocks injected scripts even if sanitizing ever missed something. |
 | Malicious attachments | Attachments are served with `X-Content-Type-Options: nosniff`, a sandboxing CSP, and as downloads unless they are images, PDF, plain text, audio or video. SVG and HTML files are always downloads. File names are cleaned, and files are stored under random ids, never under their uploaded names. |
 | Clickjacking, data leaks | `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy` and `-Resource-Policy: same-origin`, a restrictive `Permissions-Policy`, and `Cache-Control: no-store` on all API answers. HSTS over HTTPS. |
 | Spoofed client addresses | `X-Forwarded-*` headers are ignored unless `Notes__TrustProxy` is on, and even then they are only accepted from the proxy's addresses (`Notes__TrustedProxies`). |
 | Malicious import archives | Imports are read in place and never unpacked to disk; entry names only name notebooks and resolve links, absolute paths and `..` are refused. ZIP bombs are refused by entry count (20,000), unpacked size (10 × `Notes__MaxImportMb`) and per-entry size (`Notes__MaxUploadMb`), with every entry read no further than its declared size. Imported files are ordinary attachments with all their protections. |
-| Overload | Request bodies are limited (`Notes__MaxUploadMb`, `Notes__MaxImportMb` for imports), passwords longer than 1024 characters are refused before hashing, the API is rate limited per address, and search returns at most 500 results. |
+| Overload | Request bodies are limited (`Notes__MaxUploadMb`, `Notes__MaxImportMb` for imports), attachment space per user can be limited (`Notes__QuotaMb`, per-user overrides; parallel uploads are serialized so they can't pass it together), passwords longer than 1024 characters are refused before hashing, the API is rate limited per address, and search returns at most 500 results. |
 | Misconfiguration | Settings are validated on start: an unknown `Notes__CookieSecure` value, a `Notes__PublicUrl` that isn't an absolute http(s) URL, limits below their minimum or an unparsable `Notes__TrustedProxies` stop the app with a message, instead of running with a weaker policy than intended. |
 | Container escape, tampering | The image runs as a non-root user, the compose file runs it with a read-only filesystem, no Linux capabilities and `no-new-privileges`. The database is not published outside the stack. |
 | Vulnerable or tampered dependencies | All dependencies are pinned (NuGet and npm lock files, base images by digest, GitHub Actions by commit). Dependabot, `npm audit`, NuGet audit (the build fails on known vulnerabilities), CodeQL and an image scan run in CI. Releases come with SBOMs and signed build provenance. |
@@ -61,19 +61,21 @@ Security events are logged under the category `Notes.Security` with stable event
 | 1001 | Sign-in failed (wrong password or unknown account) | Warning |
 | 1002 | Sign-in refused: account locked after too many failures | Warning |
 | 1003 | Signed out | Information |
+| 1004 | User signed out one of their sessions from *Signed-in devices* | Information |
+| 1005 | User signed out all their other sessions | Information |
 | 1010 | User changed their own password | Information |
-| 1020–1023 | Administrator created a user, reset a password, changed the administrator role, deleted a user | Information |
+| 1020–1024 | Administrator created a user, reset a password, changed the administrator role, deleted a user, changed a storage limit | Information |
 | 1030 | Write refused: request from a foreign origin (possible CSRF) | Warning |
 | 1031 | Rate limit hit | Warning |
 | 1040 | The demo account exists | Warning |
 | 1050 | User downloaded the export of all their notes | Information |
 | 1051 | User imported a ZIP of notes (with the number of notes and attachments) | Information |
 
-Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limit\|exported\|imported"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
+Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limit\|exported\|imported\|session"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
 
 ## Data protection
 
-- **Deleting data:** notes and notebooks go to the trash first; deleting them from the trash removes them, their versions and tags links from the database. Deleting a user removes all their data, including attachment files. Database backups you made keep the data until you delete them.
+- **Deleting data:** notes and notebooks go to the trash first; deleting them from the trash removes them, their versions and tags links from the database. Set `NOTES_TRASH_RETENTION_DAYS` to empty the trash automatically, and `NOTES_ATTACHMENT_CLEANUP_DAYS` to delete attachments no note links to any more (removing a link from a note doesn't delete the file by itself). Deleting a user removes all their data, including attachment files. Database backups you made keep the data until you delete them.
 - **Version history** keeps earlier states of notes. Set `NOTES_VERSION_RETENTION_DAYS` to delete old versions automatically.
 - **No telemetry.** Notes makes no outgoing connections: no analytics, no update checks, no external fonts or scripts. Remote images in notes are blocked unless you set `NOTES_ALLOW_REMOTE_IMAGES=true`.
 - **Browser storage:** the client keeps only the theme, a few view settings, the signed-in email and unsaved drafts in `localStorage`. Signing out removes the email and the drafts, and the in-memory note cache and loaded attachments are dropped, so the next person at a shared computer finds nothing.

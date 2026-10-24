@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Notes.Api.Data;
 using Notes.Api.Infrastructure;
+using Notes.Api.Services;
 
 namespace Notes.Api.Auth;
 
@@ -16,6 +17,9 @@ namespace Notes.Api.Auth;
 /// </summary>
 public class SessionService(NotesDbContext db, TimeProvider clock, IOptions<NotesOptions> options)
 {
+    /// <summary>How much of the User-Agent is kept: enough to tell browsers and devices apart.</summary>
+    public const int MaxUserAgentLength = 200;
+
     /// <summary>How often a session's last use is written back.</summary>
     public static readonly TimeSpan TouchInterval = TimeSpan.FromMinutes(5);
 
@@ -26,8 +30,11 @@ public class SessionService(NotesDbContext db, TimeProvider clock, IOptions<Note
     private DateTimeOffset ExpiryAt(DateTimeOffset now, DateTimeOffset created) =>
         now + Lifetime < created + MaxAge ? now + Lifetime : created + MaxAge;
 
-    /// <summary>Starts a session and returns its token (to be put in the cookie) and expiry.</summary>
-    public async Task<(string Token, DateTimeOffset Expires)> CreateAsync(Guid userId, CancellationToken ct = default)
+    /// <summary>
+    /// Starts a session and returns its token (to be put in the cookie) and expiry. The User-Agent
+    /// only labels the session in the user's list; it isn't checked later.
+    /// </summary>
+    public async Task<(string Token, DateTimeOffset Expires)> CreateAsync(Guid userId, string? userAgent = null, CancellationToken ct = default)
     {
         var token = Base64Url(RandomNumberGenerator.GetBytes(32));
         var now = Times.Now(clock);
@@ -39,6 +46,7 @@ public class SessionService(NotesDbContext db, TimeProvider clock, IOptions<Note
             CreatedTime = now,
             LastSeenTime = now,
             ExpiresTime = ExpiryAt(now, now),
+            UserAgent = ShortenUserAgent(userAgent),
         };
         db.Sessions.Add(session);
         // Expired sessions are cleaned up whenever someone signs in
@@ -73,6 +81,38 @@ public class SessionService(NotesDbContext db, TimeProvider clock, IOptions<Note
         var userId = await db.Sessions.Where(s => s.TokenHash == hash).Select(s => (Guid?)s.UserId).FirstOrDefaultAsync(ct);
         if (userId is not null) await db.Sessions.Where(s => s.TokenHash == hash).ExecuteDeleteAsync(ct);
         return userId;
+    }
+
+    /// <summary>The user's live sessions, most recently used first; <paramref name="currentId"/> is marked.</summary>
+    public async Task<List<SessionDto>> ListAsync(Guid userId, Guid currentId, CancellationToken ct = default)
+    {
+        var now = Times.Now(clock);
+        var sessions = await db.Sessions.AsNoTracking()
+            .Where(s => s.UserId == userId && s.ExpiresTime > now)
+            .OrderByDescending(s => s.LastSeenTime)
+            .ToListAsync(ct);
+        return sessions.Select(s => new SessionDto(Ids.Format(s.Id), Times.ToMs(s.CreatedTime), Times.ToMs(s.LastSeenTime),
+            Times.ToMs(s.ExpiresTime), s.UserAgent, s.Id == currentId)).ToList();
+    }
+
+    /// <summary>Ends one of the user's sessions; 404 for an unknown or foreign id.</summary>
+    public async Task EndAsync(Guid userId, string id, CancellationToken ct = default)
+    {
+        var sessionId = Ids.Parse(id, "session");
+        var ended = await db.Sessions.Where(s => s.UserId == userId && s.Id == sessionId).ExecuteDeleteAsync(ct);
+        if (ended == 0) throw ApiException.NotFound("Session not found");
+    }
+
+    /// <summary>Ends all of the user's sessions except <paramref name="keepId"/> and returns how many there were.</summary>
+    public async Task<int> EndOthersAsync(Guid userId, Guid keepId, CancellationToken ct = default) =>
+        await db.Sessions.Where(s => s.UserId == userId && s.Id != keepId).ExecuteDeleteAsync(ct);
+
+    /// <summary>The User-Agent without control characters, cut to <see cref="MaxUserAgentLength"/>.</summary>
+    internal static string ShortenUserAgent(string? userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent)) return "";
+        var clean = new string(userAgent.Where(c => !char.IsControl(c)).ToArray()).Trim();
+        return clean.Length <= MaxUserAgentLength ? clean : clean[..MaxUserAgentLength];
     }
 
     private static byte[] Hash(string token) => SHA256.HashData(Encoding.UTF8.GetBytes(token));

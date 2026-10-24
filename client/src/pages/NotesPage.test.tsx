@@ -213,6 +213,20 @@ describe("NotesPage", () => {
     expect(sidebar().getByRole("button", { name: "Trash" }).getAttribute("aria-current")).toBe("page");
   });
 
+  it("says how long the trash keeps items when the server empties it", async () => {
+    mockNotesApi((call) =>
+      call.path === "/api/notebooks/trash"
+        ? jsonResponse([])
+        : call.path === "/api/settings"
+        ? jsonResponse({ trashRetentionDays: 30 })
+        : undefined
+    );
+    renderPage("/trash");
+
+    expect(await screen.findByText("Deleted for good after 30 days")).toBeTruthy();
+    expect(screen.getByText(/stay here for 30 days, then they are deleted for good/)).toBeTruthy();
+  });
+
   it("closes the note and goes back to the list", async () => {
     mockNotesApi();
     renderPage(`/notebooks/${work.id}/notes/${notes[1].id}`);

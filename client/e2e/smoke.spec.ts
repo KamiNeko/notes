@@ -131,6 +131,8 @@ test("shows a note's version history and restores an earlier version", async ({ 
   const history = page.getByRole("dialog", { name: "Version history" });
   await history.getByRole("button", { name: /Website relaunch/ }).first().click();
   await expect(history.getByRole("heading", { name: "Website relaunch" })).toBeVisible();
+  await history.getByRole("button", { name: "Changes" }).click();
+  await expect(history.getByRole("list", { name: "Line changes" }).getByText("First ideas for the relaunch:")).toBeVisible();
   await history.getByRole("button", { name: "Restore this version" }).click();
 
   await expect(page.getByText("Version restored")).toBeVisible();
