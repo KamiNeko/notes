@@ -72,7 +72,7 @@ erDiagram
 
 | Table | Content |
 | :--- | :--- |
-| `users` | Email (unique, lower-cased), display name, password hash, `is_admin`. Deleting a user cascades to all their rows; the service also removes their attachment folder. |
+| `users` | Email (unique, lower-cased), display name, password hash, `is_admin`, `quota_mb` (storage limit; null uses `Notes__QuotaMb`, 0 is unlimited). Deleting a user cascades to all their rows; the service also removes their attachment folder. |
 | `sessions` | SHA-256 hash of the token, created, last seen and expiry time, the browser's User-Agent at sign-in (shortened, only for the user's session list; no address). |
 | `notebooks` | Tree through `parent_id`; `deleted_time` for the trash. |
 | `notes` | Title, body (Markdown, or HTML with `markup_language = 2`), cached `preview`, to-do fields, `deleted_time`. Trigram GIN indexes on title and body. |
@@ -105,4 +105,5 @@ All routes except `/api/health` and `/api/auth/login` need a session. Bodies and
 | `POST /api/resources` · `GET /api/resources/{id}` · `DELETE /api/resources/{id}` | Upload (raw body; `X-File-Name` URI-encoded, `X-File-Type`), download, delete |
 | `GET /api/settings` | Settings the UI shows: `{ trashRetentionDays }` |
 | `GET /api/export` | ZIP of all active notes as Markdown with attachments |
-| `GET/POST /api/admin/users` · `PUT/DELETE /api/admin/users/{id}` | Administrators only: list, create, change (name, role, password), delete. The last administrator can't be demoted or deleted; nobody can delete their own account. |
+| `GET /api/storage` | `{ usedBytes, quotaBytes }`: space the user's attachments take and their limit (`null`: unlimited). Uploads past the limit get 413 with `details: { usedBytes, quotaBytes }`. |
+| `GET/POST /api/admin/users` · `PUT/DELETE /api/admin/users/{id}` | Administrators only: list (with `quotaMb` and `usedBytes`), create, change (name, role, password, storage limit via `quotaMb` or `resetQuota`), delete. The last administrator can't be demoted or deleted; nobody can delete their own account. |

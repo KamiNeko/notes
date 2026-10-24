@@ -50,6 +50,9 @@ public class NotesOptions
     /// <summary>Largest attachment accepted, in MB.</summary>
     public int MaxUploadMb { get; set; } = 25;
 
+    /// <summary>Attachment space per user, in MB; 0 is unlimited. Administrators can override it per user.</summary>
+    public int QuotaMb { get; set; }
+
     /// <summary>API requests per client address and 15 minutes.</summary>
     public int RateLimitMax { get; set; } = 1000;
 
@@ -103,6 +106,7 @@ public static class NotesOptionsValidator
         AtLeast(errors, nameof(options.TrashRetentionDays), options.TrashRetentionDays, 0);
         AtLeast(errors, nameof(options.AttachmentCleanupDays), options.AttachmentCleanupDays, 0);
         AtLeast(errors, nameof(options.MaxUploadMb), options.MaxUploadMb, 1);
+        AtLeast(errors, nameof(options.QuotaMb), options.QuotaMb, 0);
         AtLeast(errors, nameof(options.RateLimitMax), options.RateLimitMax, 1);
         AtLeast(errors, nameof(options.LoginRateLimitMax), options.LoginRateLimitMax, 1);
         AtLeast(errors, nameof(options.LoginMaxFailures), options.LoginMaxFailures, 1);

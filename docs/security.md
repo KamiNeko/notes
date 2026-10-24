@@ -23,7 +23,7 @@ Notes is built for a household or a small team on a server you control. It assum
 | Malicious attachments | Attachments are served with `X-Content-Type-Options: nosniff`, a sandboxing CSP, and as downloads unless they are images, PDF, plain text, audio or video. SVG and HTML files are always downloads. File names are cleaned, and files are stored under random ids, never under their uploaded names. |
 | Clickjacking, data leaks | `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy` and `-Resource-Policy: same-origin`, a restrictive `Permissions-Policy`, and `Cache-Control: no-store` on all API answers. HSTS over HTTPS. |
 | Spoofed client addresses | `X-Forwarded-*` headers are ignored unless `Notes__TrustProxy` is on, and even then they are only accepted from the proxy's addresses (`Notes__TrustedProxies`). |
-| Overload | Request bodies are limited (`Notes__MaxUploadMb`), passwords longer than 1024 characters are refused before hashing, the API is rate limited per address, and search returns at most 500 results. |
+| Overload | Request bodies are limited (`Notes__MaxUploadMb`), attachment space per user can be limited (`Notes__QuotaMb`, per-user overrides; parallel uploads are serialized so they can't pass it together), passwords longer than 1024 characters are refused before hashing, the API is rate limited per address, and search returns at most 500 results. |
 | Misconfiguration | Settings are validated on start: an unknown `Notes__CookieSecure` value, a `Notes__PublicUrl` that isn't an absolute http(s) URL, limits below their minimum or an unparsable `Notes__TrustedProxies` stop the app with a message, instead of running with a weaker policy than intended. |
 | Container escape, tampering | The image runs as a non-root user, the compose file runs it with a read-only filesystem, no Linux capabilities and `no-new-privileges`. The database is not published outside the stack. |
 | Vulnerable or tampered dependencies | All dependencies are pinned (NuGet and npm lock files, base images by digest, GitHub Actions by commit). Dependabot, `npm audit`, NuGet audit (the build fails on known vulnerabilities), CodeQL and an image scan run in CI. Releases come with SBOMs and signed build provenance. |
@@ -63,7 +63,7 @@ Security events are logged under the category `Notes.Security` with stable event
 | 1004 | User signed out one of their sessions from *Signed-in devices* | Information |
 | 1005 | User signed out all their other sessions | Information |
 | 1010 | User changed their own password | Information |
-| 1020–1023 | Administrator created a user, reset a password, changed the administrator role, deleted a user | Information |
+| 1020–1024 | Administrator created a user, reset a password, changed the administrator role, deleted a user, changed a storage limit | Information |
 | 1030 | Write refused: request from a foreign origin (possible CSRF) | Warning |
 | 1031 | Rate limit hit | Warning |
 | 1040 | The demo account exists | Warning |

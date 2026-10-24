@@ -43,6 +43,9 @@ public static partial class SecurityLog
     [LoggerMessage(EventId = 1023, Level = LogLevel.Information, Message = "{Actor} deleted user {Email} and all their data")]
     public static partial void UserDeleted(ILogger logger, string actor, string email);
 
+    [LoggerMessage(EventId = 1024, Level = LogLevel.Information, Message = "{Actor} set the storage limit of {Email} to {Quota}")]
+    public static partial void QuotaChanged(ILogger logger, string actor, string email, string quota);
+
     [LoggerMessage(EventId = 1030, Level = LogLevel.Warning, Message = "Refused {Method} {Path} from {Client}: origin {Origin} is not allowed")]
     public static partial void OriginRejected(ILogger logger, string method, string path, string client, string origin);
 

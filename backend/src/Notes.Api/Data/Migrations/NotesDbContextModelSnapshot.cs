@@ -359,6 +359,10 @@ namespace Notes.Api.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
 
+                    b.Property<int?>("QuotaMb")
+                        .HasColumnType("integer")
+                        .HasColumnName("quota_mb");
+
                     b.Property<DateTimeOffset>("UpdatedTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_time");

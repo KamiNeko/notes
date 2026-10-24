@@ -25,7 +25,7 @@ public record RestoreVersionRequest(long? BaseUpdatedTime);
 
 public record CreateUserRequest(string? Email, string? Password, string? DisplayName, bool? IsAdmin);
 
-public record UpdateUserRequest(string? Password, string? DisplayName, bool? IsAdmin);
+public record UpdateUserRequest(string? Password, string? DisplayName, bool? IsAdmin, int? QuotaMb, bool? ResetQuota);
 
 /// <summary>Maps the REST API under <c>/api</c>. Handlers stay thin; the services do the work.</summary>
 public static class ApiEndpoints
@@ -57,6 +57,8 @@ public static class ApiEndpoints
         MapResources(authed.MapGroup("/resources"));
         // Server settings the client shows to the user (only what the UI needs, nothing about the deployment)
         authed.MapGet("/settings", (IOptions<NotesOptions> options) => Results.Ok(new SettingsDto(Math.Max(0, options.Value.TrashRetentionDays))));
+        authed.MapGet("/storage", async (ClaimsPrincipal user, ResourceService resources, CancellationToken ct) =>
+            Results.Ok(await resources.StorageAsync(user.UserId(), ct)));
         // All of the user's notes as a ZIP of Markdown files (CRA: users can take their data elsewhere)
         authed.MapGet("/export", async (HttpContext context, ClaimsPrincipal user, ExportService export, TimeProvider clock, ILoggerFactory loggers, CancellationToken ct) =>
         {
@@ -296,7 +298,8 @@ public static class ApiEndpoints
             Results.Created((string?)null, await users.CreateAsync(Actor(user), body.Email ?? "", body.Password ?? "", body.DisplayName, body.IsAdmin ?? false, ct)));
 
         group.MapPut("/users/{id}", async (string id, UpdateUserRequest body, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
-            Results.Ok(await users.UpdateAsync(Actor(user), Ids.Parse(id, "user id"), body.Password, body.DisplayName, body.IsAdmin, ct)));
+            Results.Ok(await users.UpdateAsync(Actor(user), Ids.Parse(id, "user id"), body.Password, body.DisplayName, body.IsAdmin,
+                body.QuotaMb, body.ResetQuota ?? false, ct)));
 
         group.MapDelete("/users/{id}", async (string id, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
         {

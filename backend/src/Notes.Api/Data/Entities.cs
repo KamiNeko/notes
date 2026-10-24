@@ -14,6 +14,9 @@ public class User
 
     public bool IsAdmin { get; set; }
 
+    /// <summary>Attachment space in MB set by an administrator (0: unlimited); null uses <c>Notes__QuotaMb</c>.</summary>
+    public int? QuotaMb { get; set; }
+
     public DateTimeOffset CreatedTime { get; set; }
 
     public DateTimeOffset UpdatedTime { get; set; }

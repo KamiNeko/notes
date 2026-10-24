@@ -11,6 +11,8 @@ import {
   NoteVersionDetail,
   SignInSession,
   ServerSettings,
+  AdminUser,
+  StorageUsage,
 } from "./types";
 import { changePendingWrites, recordNetworkError, recordResponse } from "./connection";
 
@@ -586,6 +588,13 @@ export async function uploadResource(file: File): Promise<UploadedResource> {
 }
 
 /**
+ * How much space the signed-in user's attachments take, and their limit.
+ */
+export async function getStorage(): Promise<StorageUsage> {
+  return request<StorageUsage>("/api/storage");
+}
+
+/**
  * Downloads a resource (attachment) with the session and saves it under the given name.
  */
 export async function downloadResource(resourceId: string, fileName: string): Promise<void> {
@@ -666,8 +675,8 @@ export async function endOtherSessions(): Promise<number> {
 /**
  * Lists all accounts.
  */
-export async function getUsers(): Promise<UserInfo[]> {
-  return request<UserInfo[]>("/api/admin/users");
+export async function getUsers(): Promise<AdminUser[]> {
+  return request<AdminUser[]>("/api/admin/users");
 }
 
 /**
@@ -683,11 +692,12 @@ export async function createUser(input: {
 }
 
 /**
- * Changes an account: display name, administrator role or a new password (which signs the user out).
+ * Changes an account: display name, administrator role, a new password (which signs the user out) or the
+ * storage limit (`quotaMb`, 0 for unlimited; `resetQuota` goes back to the server default).
  */
 export async function updateUser(
   id: string,
-  changes: { password?: string; displayName?: string; isAdmin?: boolean }
+  changes: { password?: string; displayName?: string; isAdmin?: boolean; quotaMb?: number; resetQuota?: boolean }
 ): Promise<UserInfo> {
   return request<UserInfo>(`/api/admin/users/${id}`, { method: "PUT", body: JSON.stringify(changes) });
 }
