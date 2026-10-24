@@ -1,17 +1,20 @@
 import { Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useTheme } from "@/hooks/use-theme";
+} from "../components/tooltip";
+import { useTheme } from "../hooks/use-theme";
 
 interface ThemeToggleProps {
   className?: string;
 }
 
+/**
+ * Icon button that switches between light and dark mode.
+ */
 export function ThemeToggle({ className }: ThemeToggleProps) {
   const { theme, setTheme, isDark } = useTheme();
 

@@ -178,6 +178,7 @@ Everything needed (the .NET 10 SDK, Node.js 24, PostgreSQL 17) comes with the **
 dotnet run --project backend/src/Notes.Api
 
 # Client: http://localhost:5173, proxies /api to the backend
+npm ci   # once: installs the client and packages/ui (npm workspaces)
 npm --prefix client run dev
 ```
 
@@ -185,8 +186,10 @@ Demo login: `demo@notes.test` / `demo-password`.
 
 ```text
 backend/   .NET 10 API (minimal APIs, EF Core, PostgreSQL) and its integration tests
-client/    React app (Vite, Tailwind, shadcn/ui, TanStack Query, CodeMirror 6)
+client/    React app (Vite, Tailwind, TanStack Query, CodeMirror 6)
   e2e/     Playwright smoke tests
+packages/
+  ui/      Shared UI package: shadcn/ui components, theme tokens, theme switch
 docker/    Production Dockerfile
 docs/      Guides, arc42 architecture, screenshots
 ```
@@ -195,6 +198,7 @@ docs/      Guides, arc42 architecture, screenshots
 | :--- | :--- |
 | `cd backend && dotnet test` | Backend integration tests (each test class gets its own database, `NOTES_TEST_DATABASE`) |
 | `npm --prefix client run lint` / `test` / `build` | Client lint, unit tests (Vitest), production build |
+| `npm --prefix packages/ui run lint` / `typecheck` / `test` | Shared UI package lint, type check, unit tests |
 | `npm --prefix client run test:e2e` | Playwright smoke tests; starts backend and client itself (`E2E_DATABASE`) |
 | `npm --prefix client run screenshots` | README screenshots into `docs/images` (backend and client must run) |
 

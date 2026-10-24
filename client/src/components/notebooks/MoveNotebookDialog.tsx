@@ -7,12 +7,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from "@kamineko/ui/components/dialog";
+import { Button } from "@kamineko/ui/components/button";
+import { Input } from "@kamineko/ui/components/input";
 import { flattenNotebooks } from "@/lib/notebooks";
 import { Notebook } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 
 /** Value of the "top level" choice (no parent notebook) */
 const TOP_LEVEL = "";

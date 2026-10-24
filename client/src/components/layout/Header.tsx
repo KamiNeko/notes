@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { SEARCH_SYNTAX_HINT } from "@/lib/ui-constants";
 import { getExportUrl } from "@/lib/api";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { ThemeToggle } from "@kamineko/ui/theme/ThemeToggle";
 import { AboutDialog } from "@/components/common/Dialogs";
 import { ChangePasswordDialog } from "@/components/account/ChangePasswordDialog";
 import { SessionsDialog } from "@/components/account/SessionsDialog";
@@ -10,7 +10,7 @@ import { UsersDialog } from "@/components/account/UsersDialog";
 import { StorageMeter } from "@/components/account/StorageMeter";
 import { ImportDialog } from "@/components/account/ImportDialog";
 import { TwoFactorDialog } from "@/components/account/TwoFactorDialog";
-import { Button } from "@/components/ui/button";
+import { Button } from "@kamineko/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,8 +18,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+} from "@kamineko/ui/components/dropdown-menu";
+import { Avatar, AvatarFallback } from "@kamineko/ui/components/avatar";
 import {
   ChevronRight,
   Download,

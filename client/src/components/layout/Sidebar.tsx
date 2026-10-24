@@ -15,9 +15,9 @@ import {
 import { TagListItem } from "@/components/tags/TagListItem";
 import { countNotebookContents, findNotebookById, notebookContentsLabel } from "@/lib/notebooks";
 import { Notebook, Tag } from "@/lib/types";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@kamineko/ui/components/scroll-area";
+import { Skeleton } from "@kamineko/ui/components/skeleton";
+import { Input } from "@kamineko/ui/components/input";
 import {
   BookOpen,
   Files,
@@ -28,8 +28,8 @@ import {
   FolderTree,
   Plus,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { cn } from "@kamineko/ui/lib/utils";
+import { Button } from "@kamineko/ui/components/button";
 import { QueryError } from "@/components/common/QueryError";
 import { MOBILE_SEARCH_INPUT_ID, SEARCH_SYNTAX_HINT } from "@/lib/ui-constants";
 import { ConnectionStatus } from "./ConnectionStatus";

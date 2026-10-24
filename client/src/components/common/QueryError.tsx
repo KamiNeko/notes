@@ -1,6 +1,6 @@
 import { AlertCircle, Loader2, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@kamineko/ui/components/button";
+import { cn } from "@kamineko/ui/lib/utils";
 
 interface QueryErrorProps {
   /** Short summary, e.g. "Couldn't load notes" */

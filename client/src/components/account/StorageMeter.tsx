@@ -1,6 +1,6 @@
 import { useStorage } from "@/hooks/use-storage";
 import { formatBytes } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 
 /**
  * The space the signed-in user's attachments take, with a bar when there is a limit. Shown in the

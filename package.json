@@ -1,0 +1,17 @@
+{
+  "name": "notes",
+  "private": true,
+  "description": "npm workspaces: the web client and the shared UI package",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "client",
+    "packages/ui"
+  ],
+  "overrides": {
+    "micromark-extension-math": {
+      "katex": "^0.19.0"
+    }
+  }
+}

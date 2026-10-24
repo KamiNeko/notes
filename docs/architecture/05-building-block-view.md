@@ -9,6 +9,7 @@ flowchart TB
         Hooks["TanStack Query hooks"]
         ApiTs["lib/api.ts"]
     end
+    Kit["Shared UI (packages/ui)<br/>components, theme"]
     subgraph Backend["Notes.Api (backend/src/Notes.Api)"]
         Endpoints["Endpoints"]
         Services["Services"]
@@ -18,6 +19,7 @@ flowchart TB
     end
     PG[("PostgreSQL")]
     FS[/"Attachment files"/]
+    UI --> Kit
     UI --> Hooks --> ApiTs -->|"JSON /api"| Infra --> Endpoints --> Services --> Data --> PG
     Endpoints --> Auth --> Data
     Services --> FS
@@ -26,6 +28,7 @@ flowchart TB
 | Building block | Responsibility |
 | :--- | :--- |
 | Client | The user interface. Holds no data of its own except drafts and view settings in `localStorage`. |
+| Shared UI | `@kamineko/ui`: app-independent components and the theme, reusable by other apps ([ADR-14](09-architecture-decisions.md#adr-14-shared-ui-package-in-the-repository)). |
 | Notes.Api | Authentication, authorization, all business rules, storage, serving the compiled client. |
 | PostgreSQL | Users, sessions, notebooks, notes, tags, attachment metadata, versions. |
 | Attachment files | File contents under `DataDirectory/attachments/<userId>/<resourceId>`. |
@@ -50,8 +53,21 @@ Middleware order: forwarded headers (if trusted) → security headers → error 
 | :--- | :--- |
 | `src/lib/` | `api.ts` (the only module that knows the backend: fetch wrapper, session expiry, all calls), `types.ts`, `drafts.ts`, `connection.ts`, formatting and Markdown helpers, `line-diff.ts` (line diff for the version history). |
 | `src/hooks/` | TanStack Query hooks per resource; mutations update or invalidate the affected queries. `use-auth.ts` holds the session state. |
-| `src/components/` | `layout/` (header, sidebar, connection status), `notes/` (list, viewer, editor, history), `notebooks/`, `tags/`, `account/` (password and user dialogs), `common/` (Markdown renderer, dialogs), `ui/` (generated shadcn/ui). |
+| `src/components/` | `layout/` (header, sidebar, connection status), `notes/` (list, viewer, editor, history), `notebooks/`, `tags/`, `account/` (password and user dialogs), `common/` (Markdown renderer, dialogs). |
 | `src/pages/` | `LoginPage`, `NotesPage` (all note routes). |
+| `src/index.css` | Imports Tailwind and the shared theme, adds the app's own tokens (editor syntax and code colours), Markdown prose and code highlighting styles. |
+
+## Level 2: shared UI package
+
+`packages/ui`, published inside the workspace as `@kamineko/ui`. Apps import by path, for example `@kamineko/ui/components/button`, and add `@import "@kamineko/ui/theme.css"` after Tailwind.
+
+| Path | Responsibility |
+| :--- | :--- |
+| `src/components/` | shadcn/ui components (generated, then adapted): avatar, badge, button, card, collapsible, dialog, dropdown menu, input, label, popover, scroll area, separator, sheet, sidebar, skeleton, toaster, tooltip. |
+| `src/theme/` | `ThemeProvider` (light, dark or system, stored under an app-specific `localStorage` key) and `ThemeToggle`. |
+| `src/hooks/` | `use-theme` (theme context), `use-mobile` (`useIsMobile`, the phone breakpoint). |
+| `src/lib/utils.ts` | `cn`: joins class names and resolves conflicting Tailwind classes. |
+| `src/styles/theme.css` | Colour tokens for both themes, their Tailwind mapping, radii, base styles, scrollbars, the theme switch transition. |
 
 ## Data model
 

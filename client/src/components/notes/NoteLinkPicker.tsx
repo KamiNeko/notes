@@ -2,9 +2,9 @@ import { useEffect, useId, useState } from "react";
 import { FileText, Loader2, Search } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
 import { QueryError } from "@/components/common/QueryError";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@kamineko/ui/components/dialog";
+import { Input } from "@kamineko/ui/components/input";
+import { cn } from "@kamineko/ui/lib/utils";
 
 interface NoteLinkPickerProps {
   open: boolean;

@@ -59,7 +59,7 @@ Notes uses GitHub-flavored Markdown plus KaTeX math, Mermaid, `==mark==`, `++ins
 
 ## User interface
 
-- One set of components and design: Tailwind CSS 4 with the tokens in `index.css` (`bg-background`, `text-muted-foreground`, …), shadcn/ui primitives, light and dark theme, layouts for phone (one pane at a time) and desktop (three panes).
+- One set of components and design: Tailwind CSS 4 with the tokens from the shared UI package (`packages/ui/src/styles/theme.css`) (`bg-background`, `text-muted-foreground`, …), shadcn/ui primitives, light and dark theme, layouts for phone (one pane at a time) and desktop (three panes).
 - Server state only through TanStack Query hooks; mutations write the server's answer into the affected caches (the note, lists) and invalidate the rest (counts, tags).
 - Unsaved text is kept as drafts in `localStorage`, owned by the signed-in account and dropped on sign-out.
 - Only `lib/api.ts` knows the backend, so the UI can move into a shared library later.

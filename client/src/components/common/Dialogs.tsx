@@ -6,9 +6,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from "@kamineko/ui/components/dialog";
+import { Button } from "@kamineko/ui/components/button";
+import { Input } from "@kamineko/ui/components/input";
 import { Loader2 } from "lucide-react";
 import { APP_VERSION, GIT_SHA_SHORT } from "@/lib/version";
 

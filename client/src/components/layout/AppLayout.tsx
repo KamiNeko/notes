@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Header } from "./Header";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@kamineko/ui/components/sheet";
 import { MOBILE_SEARCH_INPUT_ID } from "@/lib/ui-constants";
 import { useAutoRefresh } from "@/hooks/use-connection";
 import { ConnectionBanner } from "./ConnectionBanner";

@@ -23,7 +23,7 @@ vi.mock("./MarkdownEditor", async () => {
   };
 });
 // jsdom has no matchMedia; desktop width
-vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => false }));
+vi.mock("@kamineko/ui/hooks/use-mobile", () => ({ useIsMobile: () => false }));
 
 const NOTE_ID = "0123456789abcdef0123456789abcdef";
 const base: Note = {

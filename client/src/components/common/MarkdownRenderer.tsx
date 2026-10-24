@@ -10,7 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiError, downloadResource, getNote, getResourceIdFromUrl, getResourceUrl } from "@/lib/api";
 import { ResourceImage } from "./ResourceImage";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 import type { TaskLocation } from "@/lib/tasks";
 import { useLocation, useNavigate } from "react-router-dom";
 import { findHeading, fragmentSlug, headingSlug } from "@/lib/heading-slug";

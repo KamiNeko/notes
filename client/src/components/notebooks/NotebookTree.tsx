@@ -7,9 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+} from "@kamineko/ui/components/dropdown-menu";
+import { Badge } from "@kamineko/ui/components/badge";
+import { cn } from "@kamineko/ui/lib/utils";
 import { ROW_ACTION_VISIBILITY } from "@/lib/ui-constants";
 
 export type NotebookAction = "create-child" | "rename" | "move" | "delete";

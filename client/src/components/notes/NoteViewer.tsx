@@ -7,9 +7,9 @@ import { setTaskChecked, type TaskLocation } from "@/lib/tasks";
 import { getConflictNote } from "@/lib/api";
 import { MarkdownRenderer } from "@/components/common/MarkdownRenderer";
 import { ConfirmDialog } from "@/components/common/Dialogs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@kamineko/ui/components/scroll-area";
+import { Badge } from "@kamineko/ui/components/badge";
+import { Skeleton } from "@kamineko/ui/components/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@kamineko/ui/components/dropdown-menu";
 import {
   Calendar,
   Clock,
@@ -42,10 +42,10 @@ import { formatRelativeTime, noteDisplayTitle } from "@/lib/format";
 import { TagEditor } from "@/components/tags/TagEditor";
 import { TodoDueDate } from "./TodoDueDate";
 import { NoteHistoryDialog } from "./NoteHistoryDialog";
-import { Button } from "@/components/ui/button";
+import { Button } from "@kamineko/ui/components/button";
 import { useDeleteNote, useRestoreNote, useUpdateNote } from "@/hooks/use-mutations";
 import { useNoteSaver } from "@/hooks/use-note-saver";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 import { QueryError, StaleDataHint } from "@/components/common/QueryError";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { copyText } from "@/lib/clipboard";

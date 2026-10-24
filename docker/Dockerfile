@@ -8,14 +8,19 @@
 # every target platform. Keep the Node.js major in sync with .nvmrc, which CI reads.
 FROM --platform=$BUILDPLATFORM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS build-client
 
-WORKDIR /build/client
+WORKDIR /build
 
 # Playwright is only used for tests and README screenshots; never download browsers here
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-COPY client/package.json client/package-lock.json ./
+# npm workspaces: one lockfile at the root for the client and the shared UI package
+COPY package.json package-lock.json ./
+COPY client/package.json client/
+COPY packages/ui/package.json packages/ui/
 RUN npm ci --no-audit --no-fund
 
-COPY client/ ./
+COPY packages/ui/ packages/ui/
+COPY client/ client/
+WORKDIR /build/client
 # Build metadata, baked into the bundle through Vite's define (see client/vite.config.ts).
 # Declared late so a new commit doesn't invalidate the cached `npm ci` layer.
 ARG APP_VERSION=dev

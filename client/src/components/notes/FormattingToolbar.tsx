@@ -20,8 +20,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+} from "@kamineko/ui/components/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@kamineko/ui/components/tooltip";
 import { ariaShortcut, FORMAT_SHORTCUTS, FormatCommand, shortcutLabel } from "./editor-commands";
 
 interface FormattingToolbarProps {

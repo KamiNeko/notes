@@ -22,7 +22,7 @@ vi.mock("./MarkdownEditor", async () => {
     }),
   };
 });
-vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => false }));
+vi.mock("@kamineko/ui/hooks/use-mobile", () => ({ useIsMobile: () => false }));
 
 // The editor's retry scheduler is recorded instead of run (its timing is covered in retry.test.ts)
 const schedule = vi.hoisted(() => vi.fn<(retryAfterMs?: number) => boolean>(() => true));

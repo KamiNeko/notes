@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from "@kamineko/ui/hooks/use-theme";
 
 type Mermaid = typeof import("mermaid").default;
 

@@ -10,7 +10,7 @@ import { setTaskChecked } from "@/lib/tasks";
 import { MarkdownEditor, MarkdownEditorHandle, UPLOAD_PLACEHOLDER } from "./MarkdownEditor";
 import { TagEditor } from "@/components/tags/TagEditor";
 import { MarkdownRenderer } from "@/components/common/MarkdownRenderer";
-import { Button } from "@/components/ui/button";
+import { Button } from "@kamineko/ui/components/button";
 import {
   Dialog,
   DialogContent,
@@ -18,9 +18,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
+} from "@kamineko/ui/components/dialog";
+import { cn } from "@kamineko/ui/lib/utils";
+import { useIsMobile } from "@kamineko/ui/hooks/use-mobile";
 import { getConnectionSnapshot, isTemporaryFailure, setNoteUnsaved } from "@/lib/connection";
 import { createRetryScheduler, RetryScheduler } from "@/lib/retry";
 import { clearDraft, saveDraft, StoredDraft } from "@/lib/drafts";

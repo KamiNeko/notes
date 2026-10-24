@@ -1,6 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@kamineko/ui/components/button";
 
 interface ErrorBoundaryProps {
   children: ReactNode;

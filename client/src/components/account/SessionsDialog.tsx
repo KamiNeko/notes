@@ -4,10 +4,10 @@ import { useEndOtherSessions, useEndSession, useSessions } from "@/hooks/use-ses
 import { formatRelativeTime } from "@/lib/format";
 import { describeUserAgent } from "@/lib/user-agent";
 import { QueryError } from "@/components/common/QueryError";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@kamineko/ui/components/badge";
+import { Button } from "@kamineko/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@kamineko/ui/components/dialog";
+import { Skeleton } from "@kamineko/ui/components/skeleton";
 
 /**
  * Where the account is signed in. A lost or shared device can be signed out here without

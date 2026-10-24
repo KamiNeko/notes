@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { NoteListItem as NoteListItemType } from "@/lib/types";
 import { NoteListItem } from "./NoteListItem";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@kamineko/ui/components/scroll-area";
+import { Skeleton } from "@kamineko/ui/components/skeleton";
 import { ArrowDownUp, CheckSquare, FileQuestion, FileText, Loader2, Plus, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@kamineko/ui/components/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +14,8 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+} from "@kamineko/ui/components/dropdown-menu";
+import { Button } from "@kamineko/ui/components/button";
 import { QueryError, StaleDataHint } from "@/components/common/QueryError";
 
 interface NoteListProps {

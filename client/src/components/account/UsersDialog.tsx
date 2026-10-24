@@ -8,21 +8,21 @@ import { formatBytes } from "@/lib/format";
 import { AdminUser } from "@/lib/types";
 import { ConfirmDialog } from "@/components/common/Dialogs";
 import { QueryError } from "@/components/common/QueryError";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback } from "@kamineko/ui/components/avatar";
+import { Badge } from "@kamineko/ui/components/badge";
+import { Button } from "@kamineko/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@kamineko/ui/components/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@kamineko/ui/components/dropdown-menu";
+import { Input } from "@kamineko/ui/components/input";
+import { Label } from "@kamineko/ui/components/label";
+import { ScrollArea } from "@kamineko/ui/components/scroll-area";
+import { Skeleton } from "@kamineko/ui/components/skeleton";
 import { MIN_PASSWORD_LENGTH } from "./ChangePasswordDialog";
 
 /**

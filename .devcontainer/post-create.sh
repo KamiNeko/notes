@@ -6,7 +6,9 @@ cd /workspace/backend
 dotnet tool restore
 dotnet restore Notes.slnx
 
-cd /workspace/client
+# npm workspaces: installs the client and packages/ui
+cd /workspace
 npm ci
+cd /workspace/client
 # Chromium for the Playwright smoke tests (E2E_CHANNEL=chromium in docker-compose.yml)
 npx playwright install --with-deps chromium

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { diffLines, foldUnchanged } from "@/lib/line-diff";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 
 interface VersionChangesProps {
   oldTitle: string;

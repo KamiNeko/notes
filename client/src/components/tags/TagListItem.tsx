@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { Hash, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Tag } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@kamineko/ui/components/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+} from "@kamineko/ui/components/dropdown-menu";
+import { cn } from "@kamineko/ui/lib/utils";
 import { ROW_ACTION_VISIBILITY } from "@/lib/ui-constants";
 
 interface TagListItemProps {

@@ -131,3 +131,19 @@ Each decision is recorded with its context, the decision and its consequences. N
 **Decision.** Optional time-based one-time passwords (RFC 6238), implemented in a few lines on top of .NET's HMAC instead of a library, with ten one-time recovery codes stored as hashes. The second factor is sent with email and password in the same sign-in request (401 with `details.secondFactor` asks for it), so there is no pending sign-in state. Administrators and the command line can turn it off for a user who lost their phone. Passkeys (WebAuthn) may follow as a second method.
 
 **Consequences.** Works with every authenticator app and needs no new dependency on the server (the client uses a small QR encoder). The TOTP secret must be stored readable; a database copy reveals it, but an attacker also needs the password. It is optional per user, not enforced by the administrator.
+
+## ADR-14: Shared UI package in the repository
+
+*Accepted, October 2026.*
+
+**Context.** Other apps (first *simmer*) should get the same look and the same components without copying them. A package of its own repository or registry adds release overhead before a second consumer exists, and changes to a component would need two pull requests.
+
+**Decision.** The shadcn/ui components, the theme tokens and Tailwind base styles (`theme.css`), the theme provider and toggle, `cn` and `useIsMobile` live in `packages/ui` as the package `@kamineko/ui`. The repository root is an npm workspace with the client and the package and one `package-lock.json`. The package ships TypeScript sources and CSS (no build step); the app's Vite compiles them, and `theme.css` tells Tailwind to scan the components through `@source`. It only depends on React, Radix UI and the styling helpers, never on the app (no `@/` imports, no API or query code).
+
+**Consequences.** Notes changes and its UI change in one pull request, and the compiled app is the same as before. Other apps can't consume the package yet. When they do, it moves without changing its imports:
+
+1. Give the package a build (Vite library mode or tsup) that emits JavaScript, type declarations and the CSS, and point `exports` at the output. Keep `@source` pointing at the built files.
+2. Remove `"private": true`, add `publishConfig.registry` (`https://npm.pkg.github.com`) and a workflow that publishes on `ui-v*` tags with `packages: write` only on that job, provenance and an SBOM, like the app release.
+3. Consumers add an `.npmrc` with `@kamineko:registry=https://npm.pkg.github.com` (GitHub Packages needs a token for installs, even for public packages) and depend on a version range instead of the workspace.
+4. Optionally move `packages/ui` with its history to its own repository (`git subtree split`) once more than one app depends on it.
+

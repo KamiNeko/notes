@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { FolderOpen, Loader2, Upload } from "lucide-react";
 import { useImportNotes } from "@/hooks/use-mutations";
 import { ImportResult } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Button } from "@kamineko/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@kamineko/ui/components/dialog";
+import { Label } from "@kamineko/ui/components/label";
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 

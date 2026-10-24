@@ -1,6 +1,6 @@
 import { NoteListItem as NoteListItemType, Tag } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Badge } from "@kamineko/ui/components/badge";
+import { cn } from "@kamineko/ui/lib/utils";
 import { formatRelativeTime, noteDisplayTitle } from "@/lib/format";
 import { dueTime, formatDueDate, isOverdue } from "@/lib/due";
 import { AlarmClock, CheckSquare, Square, FileText } from "lucide-react";

@@ -6,11 +6,11 @@ import { Note } from "@/lib/types";
 import { getConflictNote } from "@/lib/api";
 import { dueTime, formatDueDate, fromDateTimeLocal, isOverdue, toDateTimeLocal } from "@/lib/due";
 import { useUpdateNote } from "@/hooks/use-mutations";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@kamineko/ui/components/popover";
+import { Button } from "@kamineko/ui/components/button";
+import { Input } from "@kamineko/ui/components/input";
+import { Label } from "@kamineko/ui/components/label";
+import { cn } from "@kamineko/ui/lib/utils";
 
 interface TodoDueDateProps {
   note: Note;

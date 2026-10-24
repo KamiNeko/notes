@@ -10,11 +10,11 @@ import {
 } from "@/hooks/use-two-factor";
 import { TwoFactorSetup } from "@/lib/types";
 import { QueryError } from "@/components/common/QueryError";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@kamineko/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@kamineko/ui/components/dialog";
+import { Input } from "@kamineko/ui/components/input";
+import { Label } from "@kamineko/ui/components/label";
+import { Skeleton } from "@kamineko/ui/components/skeleton";
 import { QrCode } from "./QrCode";
 
 type Step =

@@ -1,10 +1,10 @@
 import React from "react";
 import { SearchResult } from "@/lib/types";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@kamineko/ui/components/scroll-area";
+import { Skeleton } from "@kamineko/ui/components/skeleton";
 import { Search, FileText, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@kamineko/ui/components/button";
+import { cn } from "@kamineko/ui/lib/utils";
 import { formatRelativeTime } from "@/lib/format";
 import { QueryError } from "@/components/common/QueryError";
 import { SEARCH_SYNTAX_HINT } from "@/lib/ui-constants";

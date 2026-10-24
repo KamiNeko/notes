@@ -22,13 +22,14 @@ The dev container brings the .NET 10 SDK, Node.js 24 and PostgreSQL 17; the [REA
 - **Schema changes need an EF migration**; never edit one that was already applied.
 - **New or changed endpoints need a backend test**; security changes a test in `SecurityTests`. The build has to stay free of warnings.
 - **Client:** server state goes through the TanStack Query hooks in `client/src/hooks`, only `lib/api.ts` talks to the backend, styles use the Tailwind tokens. Both themes and phone width must work.
+- **Shared UI:** generic components and the theme belong in `packages/ui`; it must not import from the app (no `@/`, no API or query code).
 - **Dependencies:** only when really needed, with a license the dependency review allows; commit the updated lock files. New GitHub Actions are pinned by commit SHA, base images by digest.
 - **Never commit secrets**, `.env` or real server URLs. Use the demo account for tests and screenshots.
 
 ### Definition of done
 
 1. `cd backend && dotnet build && dotnet test`
-2. `npm --prefix client run lint && npm --prefix client run build && npm --prefix client test`, and for user flows `npm --prefix client run test:e2e`
+2. `npm --prefix client run lint && npm --prefix client run build && npm --prefix client test`, and for user flows `npm --prefix client run test:e2e`; after changes in `packages/ui` also `npm --prefix packages/ui run lint && npm --prefix packages/ui run typecheck && npm --prefix packages/ui test`
 3. UI changes checked in the browser against the demo, in light and dark mode and at phone width (~390 px)
 4. Docs updated: README feature list, a `CHANGELOG.md` entry under *Unreleased* (breaking changes and security fixes marked), screenshots when the UI visibly changed, the matching arc42 section, `docs/security.md` and `docs/cra.md` when a protection changes
 

@@ -47,11 +47,8 @@ jobs:
       - run: dotnet test --solution Notes.slnx --no-build
 
   client:
-    name: Client (lint + tests + build)
+    name: Client and UI package (lint + tests + build)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: client
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -60,13 +57,16 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: client/package-lock.json
+      # npm workspaces: installs the client and packages/ui from the root lockfile
       - run: npm ci
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
+      - run: npm --prefix packages/ui run lint
+      - run: npm --prefix packages/ui run typecheck
+      - run: npm --prefix packages/ui test
+      - run: npm --prefix client run lint
+      - run: npm --prefix client test
+      - run: npm --prefix client run build
 
   e2e:
     name: End-to-end smoke tests (Playwright + demo)
@@ -98,10 +98,8 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: client/package-lock.json
       - run: dotnet build backend/src/Notes.Api
       - run: npm ci
-        working-directory: client
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
       # Uses the Google Chrome preinstalled on the runner (channel "chrome"), no browser download
@@ -125,8 +123,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - name: npm packages (production and build)
-        working-directory: client
+      - name: npm packages (production and build, all workspaces)
         run: npm audit --audit-level=moderate
 
   dependency-review:
@@ -142,6 +139,10 @@ jobs:
           fail-on-severity: moderate
           # Licenses that are compatible with publishing Notes under MIT
           allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, CC0-1.0, CC-BY-4.0, Unlicense, BlueOak-1.0.0, Python-2.0, MPL-2.0, PostgreSQL
+          # Transitive dependencies of mermaid (diagram rendering), shipped unmodified in the bundle:
+          # elkjs is EPL-2.0 (weak copyleft, file-level), robust-predicates is Unlicense plus a public
+          # domain notice the action can't classify
+          allow-dependencies-licenses: pkg:npm/elkjs, pkg:npm/robust-predicates
 
   docker:
     name: Docker image

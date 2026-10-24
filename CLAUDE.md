@@ -9,7 +9,9 @@ Security is a first-class requirement and the project follows the EU Cyber Resil
 - `backend/` (`Notes.slnx`, `global.json` selects Microsoft Testing Platform for `dotnet test`)
   - `src/Notes.Api/`: minimal APIs + EF Core (Npgsql, snake_case). `Data/` (entities, DbContext, migrations, demo seed), `Auth/`, `Services/`, `Endpoints/ApiEndpoints.cs`, `Infrastructure/`, `Cli/`.
   - `tests/Notes.Api.Tests/`: xUnit v3 integration tests through `NotesApiFactory` (fresh Postgres database per test class, `FakeTimeProvider`).
-- `client/`: React 19 + Vite + TypeScript, Tailwind 4, shadcn/ui (`src/components/ui/` is generated), TanStack Query, CodeMirror 6. Import alias `@/` → `client/src/`. Tests next to the code as `*.test.ts(x)` (Vitest + Testing Library, jsdom); `src/test/` has the `fetch` stub and `renderWithProviders`. Playwright smoke tests in `client/e2e/`.
+- `package.json` at the root: npm workspaces (`client`, `packages/ui`) with one `package-lock.json`; run `npm ci` in the root.
+- `packages/ui/`: shared UI package `@kamineko/ui` (ADR-14): shadcn/ui components (`src/components/`, generated then adapted, relative imports), `theme.css` (tokens for both themes, Tailwind mapping, base styles), `ThemeProvider`/`ThemeToggle`, `use-theme`, `use-mobile`, `cn`. Ships TypeScript sources, no build. Must not import from the app. Tests next to the code (Vitest, jsdom).
+- `client/`: React 19 + Vite + TypeScript, Tailwind 4, TanStack Query, CodeMirror 6; imports the UI kit as `@kamineko/ui/components/<name>`, `@kamineko/ui/lib/utils` etc. Import alias `@/` → `client/src/`. Tests next to the code as `*.test.ts(x)` (Vitest + Testing Library, jsdom); `src/test/` has the `fetch` stub and `renderWithProviders`. Playwright smoke tests in `client/e2e/`.
 - `docker/Dockerfile` (client build → `dotnet publish` → aspnet runtime, client in `wwwroot`), `docker-compose.yml` + `.env.example` (hardened production stack), `.devcontainer/` (SDK, Node 24, Postgres), `.github/workflows/` (`ci.yml`, `codeql.yml`, `scorecard.yml`, `release.yml` on `v*` tags), `.github/dependabot.yml`.
 - `docs/`: `architecture/` (arc42, one file per section), `security.md`, `cra.md`, `deployment.md`; `SECURITY.md`, `CONTRIBUTING.md` and `CHANGELOG.md` at the root, issue and PR templates in `.github/`.
 
@@ -19,6 +21,8 @@ Security is a first-class requirement and the project follows the EU Cyber Resil
 cd backend && dotnet build && dotnet test            # needs Postgres (NOTES_TEST_DATABASE, default localhost notes/notes)
 dotnet run --project backend/src/Notes.Api           # API :5080, Development seeds demo@notes.test / demo-password
 cd backend && dotnet ef migrations add <Name> --project src/Notes.Api --output-dir Data/Migrations   # after `dotnet tool restore`
+npm ci                                               # root: installs all workspaces
+npm --prefix packages/ui run lint && npm --prefix packages/ui run typecheck && npm --prefix packages/ui test
 npm --prefix client run lint
 npm --prefix client run build
 npm --prefix client test
@@ -37,7 +41,7 @@ Node.js 24 (`.nvmrc`): the client tests fail on Node 22 (jsdom `Blob` in `Respon
 - Schema changes need an EF migration (raw SQL for what EF can't express, e.g. trigram indexes). Never edit an applied migration.
 - Notes stay plain Markdown (GFM plus the extensions in `lib/markdown-extensions.ts`, `:/<id>` links to notes and attachments).
 - New or changed endpoints need a test in `backend/tests`. Keep the build warning-free (`TreatWarningsAsErrors`).
-- Client: server state goes through TanStack Query hooks in `client/src/hooks`; mutations invalidate the affected queries. Only `lib/api.ts` knows the backend, so the UI can later move into a shared library. Style with Tailwind tokens from `index.css`; both themes and phone width must work.
+- Client: server state goes through TanStack Query hooks in `client/src/hooks`; mutations invalidate the affected queries. Only `lib/api.ts` knows the backend, so the UI can later move into a shared library. Style with the Tailwind tokens from `packages/ui/src/styles/theme.css` (app-only tokens in `client/src/index.css`); both themes and phone width must work. Generic components and tokens go into `packages/ui`, app-specific ones stay in `client/`.
 - Match the surrounding code: XML docs / JSDoc on public members, comments only where intent isn't obvious.
 - Never commit secrets, real server URLs or `.env`. Use the demo seed for screenshots and tests.
 - **Security.** Log security-relevant events through `Infrastructure/SecurityLog.cs` (new event ids, never passwords or tokens) and list them in `docs/security.md`. Keep the security headers, Origin check, rate limits and the container hardening in `docker-compose.yml`. Security changes need a test in `SecurityTests` (or the matching test class).
@@ -47,7 +51,7 @@ Node.js 24 (`.nvmrc`): the client tests fail on Node 22 (jsdom `Blob` in `Respon
 ## Definition of done
 
 1. `cd backend && dotnet build && dotnet test`
-2. `npm --prefix client run lint && npm --prefix client run build && npm --prefix client test` (warnings OK, no errors); for user flows also `npm --prefix client run test:e2e`.
+2. `npm --prefix client run lint && npm --prefix client run build && npm --prefix client test` (warnings OK, no errors); for user flows also `npm --prefix client run test:e2e`. After changes in `packages/ui` also its `lint`, `typecheck` and `test`.
 3. UI changes: checked in the browser against the demo, in light + dark and at phone width (~390px).
 4. Docs updated as described above.
 

@@ -5,15 +5,15 @@ import { ArrowLeft, History, Loader2, RotateCcw } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { MARKUP_HTML, Note } from "@/lib/types";
 import { formatRelativeTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 import { useNoteVersion, useNoteVersions, useRestoreNoteVersion } from "@/hooks/use-versions";
 import { MarkdownRenderer } from "@/components/common/MarkdownRenderer";
 import { VersionChanges } from "./VersionChanges";
 import { QueryError } from "@/components/common/QueryError";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@kamineko/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@kamineko/ui/components/dialog";
+import { ScrollArea } from "@kamineko/ui/components/scroll-area";
+import { Skeleton } from "@kamineko/ui/components/skeleton";
 
 const formatDateTime = (ms: number) => new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 

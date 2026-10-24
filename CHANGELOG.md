@@ -17,6 +17,7 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 ### Changed
 
 - Notes is described as an independent product: README, documentation, demo notes and UI hints no longer refer to other notes apps.
+- The UI components and the theme moved into a shared package, `packages/ui` (`@kamineko/ui`), so other apps can reuse them. The repository root is now an npm workspace: run `npm ci` in the root instead of `client/`. The app looks and works the same.
 
 ### Security
 
