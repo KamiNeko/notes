@@ -4,6 +4,8 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-24
+
 ### Added
 
 - **Export:** every user can download all their notes as a ZIP of Markdown files with YAML front matter (compatible with Joplin's Markdown + front matter import), organized in notebook folders, with their attachments and working relative links (account menu > *Export notes*, `GET /api/export`).
@@ -43,5 +45,6 @@ First release.
 - Server-side sessions with `HttpOnly`, `SameSite=Strict` cookies, Origin check, Content Security Policy, rate limits.
 - Docker image, Docker Compose stack with PostgreSQL 17, dev container, CI.
 
-[Unreleased]: https://github.com/KamiNeko/notes/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/KamiNeko/notes/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/KamiNeko/notes/releases/tag/v0.2.0
 [0.1.0]: https://github.com/KamiNeko/notes/releases/tag/v0.1.0
