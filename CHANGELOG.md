@@ -4,11 +4,15 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Changed
+
+- Notes is described as an independent product: README, documentation, demo notes and UI hints no longer refer to other notes apps.
+
 ## [0.2.0] - 2026-10-24
 
 ### Added
 
-- **Export:** every user can download all their notes as a ZIP of Markdown files with YAML front matter (compatible with Joplin's Markdown + front matter import), organized in notebook folders, with their attachments and working relative links (account menu > *Export notes*, `GET /api/export`).
+- **Export:** every user can download all their notes as a ZIP of Markdown files with YAML front matter, organized in notebook folders, with their attachments and working relative links (account menu > *Export notes*, `GET /api/export`).
 - **Security log:** sign-ins, failed sign-ins, account locks, sign-outs, password and account changes, refused cross-origin requests and rate limit hits are logged under `Notes.Security` with stable event ids.
 - `Notes__TrustedProxies`: the addresses a reverse proxy may connect from (defaults to private networks).
 - Release workflow: multi-arch images on GHCR with signed build provenance, SBOM attestations and CycloneDX SBOMs attached to each GitHub release.
@@ -40,7 +44,7 @@ First release.
 ### Added
 
 - Notebooks (nested), notes and to-dos with due dates, tags, trash, version history with restore, full-text search with filters, image and file attachments, conflict detection.
-- Markdown editor with Edit, Split and Preview modes and Joplin's Markdown extensions (math, Mermaid, highlight, insert, sub- and superscript); sanitized HTML notes.
+- Markdown editor with Edit, Split and Preview modes and Markdown extensions (math, Mermaid, highlight, insert, sub- and superscript); sanitized HTML notes.
 - Accounts created by an administrator, user management in the app and on the command line, per-user data isolation.
 - Server-side sessions with `HttpOnly`, `SameSite=Strict` cookies, Origin check, Content Security Policy, rate limits.
 - Docker image, Docker Compose stack with PostgreSQL 17, dev container, CI.

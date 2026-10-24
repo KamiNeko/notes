@@ -2,8 +2,8 @@
 
 | Goal or constraint | Approach | Details |
 | :--- | :--- | :--- |
-| Same UI as Joplin Web, little rewriting | Keep the client and its REST API shape; replace only the backend behind it. | [ADR-6](09-architecture-decisions.md#adr-6-keep-joplin-webs-rest-api) |
-| Independence from Joplin | Own backend with its own data model; Joplin's Markdown dialect and id format stay. | [ADR-1](09-architecture-decisions.md#adr-1-own-backend-instead-of-joplin-server), [ADR-8](09-architecture-decisions.md#adr-8-joplin-compatible-markdown-and-ids) |
+| Proven UI, little rewriting | Keep the existing client and its REST API shape; build only the backend behind it. | [ADR-6](09-architecture-decisions.md#adr-6-keep-the-existing-clients-rest-api) |
+| Independence | Own backend with its own data model; plain Markdown and a simple id format. | [ADR-1](09-architecture-decisions.md#adr-1-own-backend-with-its-own-database), [ADR-8](09-architecture-decisions.md#adr-8-plain-markdown-with-common-extensions-32-hex-ids) |
 | Familiar, maintainable backend | ASP.NET Core minimal APIs, thin endpoints, one service per resource, EF Core. | [ADR-2](09-architecture-decisions.md#adr-2-net-10-minimal-apis-and-ef-core) |
 | Search without extra infrastructure | PostgreSQL with trigram indexes; ranking and snippets in C#. | [ADR-3](09-architecture-decisions.md#adr-3-search-in-postgresql) |
 | Simple backups, small database | Attachments as files on a volume, metadata in the database. | [ADR-4](09-architecture-decisions.md#adr-4-attachments-on-the-filesystem) |

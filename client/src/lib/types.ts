@@ -67,7 +67,7 @@ export interface Note {
   todoDue?: number;
 }
 
-/** `markupLanguage` of HTML notes, e.g. pages copied over from Joplin's Web Clipper */
+/** `markupLanguage` of HTML notes, e.g. pages saved with a web clipper */
 export const MARKUP_HTML = 2;
 
 /**

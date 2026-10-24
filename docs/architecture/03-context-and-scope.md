@@ -8,8 +8,8 @@ flowchart LR
     A["👤 Administrator<br/>manages accounts, operates the server"]
     N(("Notes"))
     B[("Backups<br/>database dump + attachments")]
-    O["Other apps<br/>Obsidian, Joplin, editors"]
-    J["Joplin<br/>(previous system)"]
+    O["Other apps<br/>Obsidian, editors"]
+    J["Other notes apps<br/>(previous systems)"]
     U -->|"browser: notes, notebooks, tags, search, attachments, history"| N
     A -->|"browser: user administration<br/>shell: users CLI, docker compose"| N
     N -->|"Markdown export (ZIP)"| O
@@ -21,7 +21,7 @@ flowchart LR
 | :--- | :--- | :--- |
 | User | Credentials, notes, attachments, search queries | Rendered notes, lists, search results, attachments, the export ZIP |
 | Administrator | New accounts, password resets, roles; configuration in `.env` | Account list, security log |
-| Joplin | Markdown text pasted into new notes | – |
+| Other notes apps | Markdown text pasted into new notes | – |
 | Other apps | – | Export: Markdown with YAML front matter, attachments, relative links |
 | Backup system | – | Database dump and attachment archive |
 

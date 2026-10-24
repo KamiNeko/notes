@@ -1,5 +1,5 @@
 /**
- * Heading anchors as Joplin writes them in links like ":/<noteId>#<slug>" (uslug style: lower case,
+ * Heading anchors as written in links like ":/<noteId>#<slug>" (uslug style: lower case,
  * letters, digits, "-" and "_" kept, whitespace becomes "-", everything else dropped). Repeated
  * headings get "-1", "-2", … like markdown-it-anchor.
  */

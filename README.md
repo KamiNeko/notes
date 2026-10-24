@@ -32,12 +32,10 @@ Your notes are some of the most personal data you have: plans, journals, passwor
 
 - 🏠 **Self-hosted, all the way.** The app and its database run in one Docker Compose stack, for example in a Proxmox LXC. Notes never calls home: no telemetry, no analytics, no external fonts or scripts.
 - 🔐 **Security as a feature, not an afterthought.** Hardened defaults, a strict Content Security Policy, a locked-down container, signed releases with SBOMs, and a public security policy. Built along the EU Cyber Resilience Act. [More below.](#security-first)
-- 📝 **Plain Markdown.** Notes are Markdown with the same extensions as Joplin, so notes copied over from Joplin render the same, and one click exports everything as Markdown files again. No lock-in.
+- 📝 **Plain Markdown.** Notes are GitHub-flavored Markdown with a few well-known extensions (math, Mermaid diagrams, highlights), so notes pasted in from other apps keep their formatting, and one click exports everything as Markdown files again. No lock-in.
 - 👥 **Accounts for the household.** An administrator adds users; there is no public sign-up. Every user sees only their own notes, and not even administrators can read them in the app.
 - 🕰️ **Nothing gets lost.** Version history for every note, a trash, conflict detection between devices, and unsaved typing that survives a lost connection.
 - ⚡ **Fast and small.** A .NET backend and a React app in one container. A household runs comfortably on one CPU core and 1 GB of RAM.
-
-Notes started as [Joplin Web](https://github.com/KamiNeko/joplin-web), a browser client for Joplin Server. It turned out the browser was all that was needed, so Notes keeps the same interface and drops Joplin from the setup.
 
 Not included, on purpose: offline mode, sharing notes with others, and end-to-end encryption.
 
@@ -149,11 +147,11 @@ Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app 
 | | `Notes__CookieSecure` | `auto` | `auto` (Secure over HTTPS), `true` or `false`. |
 | | `Notes__RateLimitMax`, `Notes__LoginRateLimitMax` | `1000`, `30` | API requests and sign-in attempts per client address and 15 minutes. |
 
-## Moving from Joplin, and away from Notes
+## Moving your notes in and out
 
-**From Joplin:** Notes uses the same Markdown dialect, including links to other notes and attachments written as `:/<32-character id>`. Copying a note's Markdown from Joplin into a new note keeps its formatting. Links to other notes only work once those notes exist here with their ids, and attachments need to be added again. There is no automatic importer yet.
+**Into Notes:** paste a note's Markdown into a new note and it keeps its formatting. Links to other notes and attachments are written as `:/<32-character id>`; they work once the target exists here with that id, and attachments need to be added again. There is no automatic importer yet.
 
-**Away from Notes:** account menu > *Export notes* downloads all your notes as a ZIP: one Markdown file per note with YAML front matter (title, dates, tags, to-do state), folders per notebook, attachments in `_resources/`, and links rewritten to relative paths. Joplin's *Markdown + Front Matter* import, Obsidian and most Markdown editors open it directly.
+**Away from Notes:** account menu > *Export notes* downloads all your notes as a ZIP: one Markdown file per note with YAML front matter (title, dates, tags, to-do state), folders per notebook, attachments in `_resources/`, and links rewritten to relative paths. Obsidian and most Markdown editors open it directly.
 
 ## Documentation
 

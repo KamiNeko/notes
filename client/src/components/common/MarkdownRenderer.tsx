@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import type { TaskLocation } from "@/lib/tasks";
 import { useLocation, useNavigate } from "react-router-dom";
 import { findHeading, fragmentSlug, headingSlug } from "@/lib/heading-slug";
-import { remarkJoplinMarkup, remarkJoplinMath } from "@/lib/markdown-extensions";
+import { remarkInlineMarkup, remarkDollarMath } from "@/lib/markdown-extensions";
 import { MathFormula } from "./MathFormula";
 import { MermaidDiagram } from "./MermaidDiagram";
 
@@ -23,7 +23,7 @@ interface MarkdownRendererProps {
   className?: string;
   /**
    * Renders `content` as HTML instead of Markdown, for notes with `markup_language: 2` (e.g. pages
-   * saved with the Joplin Web Clipper). Same sanitizing and `:/id` handling, no Markdown parsing.
+   * saved with a web clipper). Same sanitizing and `:/id` handling, no Markdown parsing.
    */
   html?: boolean;
   /**
@@ -177,9 +177,9 @@ const sanitizeSchema = {
 };
 
 /**
- * Preprocesses markdown text to translate Joplin-specific `:/<id>` links into web-compatible URLs.
+ * Preprocesses markdown text to translate `:/<id>` links into web-compatible URLs.
  */
-function preprocessJoplinMarkdown(raw: string): string {
+function preprocessMarkdown(raw: string): string {
   if (!raw) return "";
 
   // Replace Markdown image syntax: ![alt](:/id "title") -> ![alt](/api/resources/id "title").
@@ -191,22 +191,22 @@ function preprocessJoplinMarkdown(raw: string): string {
     (_, alt, lead, id, title = "", trail) => `![${alt}](${lead}${getResourceUrl(id)}${title}${trail})`
   );
 
-  // Replace links to notes/attachments: [text](:/id) -> /joplin-item/id, keeping a "#heading"
+  // Replace links to notes/attachments: [text](:/id) -> /note-item/id, keeping a "#heading"
   // fragment. A ":/" href would be dropped by the sanitizer as an unknown protocol.
   transformed = transformed.replace(
     /(^|[^!])\[([^\]]*)\]\((\s*):\/?([0-9a-fA-F]{32})(#[^\s()"'<>]*)?(\s+"[^"]*")?(\s*)\)/g,
     (_, before, text, lead, id, fragment = "", title = "", trail) =>
-      `${before}[${text}](${lead}${JOPLIN_ITEM_PATH}${id.toLowerCase()}${fragment}${title}${trail})`
+      `${before}[${text}](${lead}${ITEM_PATH}${id.toLowerCase()}${fragment}${title}${trail})`
   );
 
-  return preprocessJoplinHtml(transformed);
+  return preprocessHtml(transformed);
 }
 
 /**
  * Translates `:/<id>` references in HTML (`<img src>`, `<a href>`) into web-compatible URLs.
  * Used for HTML notes and for the HTML inside Markdown notes.
  */
-function preprocessJoplinHtml(raw: string): string {
+function preprocessHtml(raw: string): string {
   if (!raw) return "";
 
   // Replace HTML image src: <img src=":/id" ...> -> <img src="/api/resources/id" ...>
@@ -215,17 +215,17 @@ function preprocessJoplinHtml(raw: string): string {
     (_, before, id, after) => `<img${before}src="${getResourceUrl(id)}"${after}>`
   );
 
-  // Replace links to notes/attachments: <a href=":/id"> -> /joplin-item/id, keeping a "#heading" fragment
+  // Replace links to notes/attachments: <a href=":/id"> -> /note-item/id, keeping a "#heading" fragment
   transformed = transformed.replace(
     /<a([^>]{1,500}?)href=(["']):\/?([0-9a-fA-F]{32})(#[^\s"'<>]*)?\2/gi,
-    (_, before, _quote, id, fragment = "") => `<a${before}href="${JOPLIN_ITEM_PATH}${id.toLowerCase()}${fragment}"`
+    (_, before, _quote, id, fragment = "") => `<a${before}href="${ITEM_PATH}${id.toLowerCase()}${fragment}"`
   );
 
   return transformed;
 }
 
-const JOPLIN_ITEM_PATH = "/joplin-item/";
-const JOPLIN_ITEM_HREF = /^\/joplin-item\/([0-9a-f]{32})(?:#(.*))?$/;
+const ITEM_PATH = "/note-item/";
+const ITEM_HREF = /^\/note-item\/([0-9a-f]{32})(?:#(.*))?$/;
 
 /** Flattens rendered link children to plain text (used as the download file name) */
 function textContent(node: React.ReactNode): string {
@@ -312,7 +312,7 @@ function CodeBlock({ inline, className, children, ...props }: CodeBlockProps) {
 }
 
 /**
- * Reusable Markdown renderer for notes (Joplin-compatible Markdown) with code highlighting,
+ * Reusable Markdown renderer for notes (GitHub-flavored Markdown plus extensions) with code highlighting,
  * resource resolving, and beautiful typography.
  */
 export function MarkdownRenderer({ content, className, html = false, onToggleTask }: MarkdownRendererProps) {
@@ -323,7 +323,7 @@ export function MarkdownRenderer({ content, className, html = false, onToggleTas
   const scrolledForRef = useRef<string | null>(null);
 
   // ":/id" can point to a note or an attachment; only the server knows which
-  const openJoplinItem = async (id: string, label: string, slug: string | null) => {
+  const openItem = async (id: string, label: string, slug: string | null) => {
     try {
       await queryClient.fetchQuery({ queryKey: ["note", id], queryFn: () => getNote(id), staleTime: 15 * 1000 });
       navigate(`/notes/${id}${slug ? `#${encodeURIComponent(slug)}` : ""}`);
@@ -339,7 +339,7 @@ export function MarkdownRenderer({ content, className, html = false, onToggleTas
       }
     }
   };
-  const processedContent = html ? preprocessJoplinHtml(content) : preprocessJoplinMarkdown(content);
+  const processedContent = html ? preprocessHtml(content) : preprocessMarkdown(content);
 
   // A link to a heading ("/notes/<id>#<slug>") scrolls to it once per navigation, not on every
   // re-render (the editor preview re-renders while typing)
@@ -364,11 +364,11 @@ export function MarkdownRenderer({ content, className, html = false, onToggleTas
           html
             ? [remarkWholeHtml]
             : [
-                // Joplin uses a single "~" for subscript, only "~~" is strikethrough
+                // A single "~" is subscript, only "~~" is strikethrough
                 [remarkGfm, { singleTilde: false }],
                 remarkMath,
-                remarkJoplinMath,
-                remarkJoplinMarkup,
+                remarkDollarMath,
+                remarkInlineMarkup,
                 remarkTaskItems,
               ]
         }
@@ -398,15 +398,15 @@ export function MarkdownRenderer({ content, className, html = false, onToggleTas
           a: ({ href, children, ...props }) => {
             if (!href) return <a {...props}>{children}</a>;
 
-            // Links to Joplin notes or attachments (":/id", rewritten in preprocessing)
-            if (href.startsWith(JOPLIN_ITEM_PATH)) {
-              const match = JOPLIN_ITEM_HREF.exec(href);
+            // Links to other notes or attachments (":/id", rewritten in preprocessing)
+            if (href.startsWith(ITEM_PATH)) {
+              const match = ITEM_HREF.exec(href);
               if (!match) return <span>{children}</span>;
               const [, itemId, fragment] = match;
               return (
                 <button
                   type="button"
-                  onClick={() => void openJoplinItem(itemId, textContent(children), fragmentSlug(fragment ?? ""))}
+                  onClick={() => void openItem(itemId, textContent(children), fragmentSlug(fragment ?? ""))}
                   className="inline-flex items-center text-primary underline underline-offset-4 hover:text-primary/80 transition-colors font-medium"
                 >
                   {children}

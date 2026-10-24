@@ -6,7 +6,7 @@
 | :--- | :--- |
 | Backend in **.NET 10** (C#, ASP.NET Core) | The maintainer's professional stack; long-term support release. |
 | **PostgreSQL** as the only database | Robust, well known, good full-text tooling (`pg_trgm`), easy to back up. |
-| Client with **React, Vite, Tailwind CSS, shadcn/ui** | Same stack and same look as Joplin Web, whose client is reused. |
+| Client with **React, Vite, Tailwind CSS, shadcn/ui** | The stack of the reused client; a shared UI library with other projects is planned. |
 | **Docker Compose** deployment in a **Proxmox LXC** | The maintainer's home server setup; fully standalone (no shared database or services with other apps). |
 | **Dev container** | Development on Windows with WSL must work with all dependencies (SDK, Node, Postgres) coming from the container. |
 | Runs on amd64 and arm64 | Home servers and single-board computers. |
@@ -19,15 +19,15 @@
 | One maintainer | Simplicity beats features; automation (CI, Dependabot) carries routine work. |
 | Open source under the **MIT license** on GitHub (`KamiNeko/notes`) | Public code, issues, security advisories and releases. |
 | Conventional commits, pull requests against `main` | See `CLAUDE.md`. |
-| UI shared with Joplin Web (and later other projects) | UI code must stay extractable into a shared library: only `client/src/lib/api.ts` knows the backend. |
+| UI to be shared with other projects later | UI code must stay extractable into a shared library: only `client/src/lib/api.ts` knows the backend. |
 
 ## Conventions
 
 | Convention | Background |
 | :--- | :--- |
-| Joplin's Markdown dialect, 32-hex ids and `:/<id>` links | Notes copied over from Joplin render the same, and links keep their form. |
-| REST API shape of Joplin Web | The client could be reused without rewriting its data layer. |
-| Times as Unix milliseconds in the API | Same as Joplin Web. |
+| GitHub-flavored Markdown with common extensions, 32-hex ids and `:/<id>` links | Markdown pasted in from other apps renders the same; ids and links have one fixed form. |
+| REST API shape of the reused client | The client could be reused without rewriting its data layer. |
+| Times as Unix milliseconds in the API | Same as the reused client. |
 
 ## Regulatory constraints
 

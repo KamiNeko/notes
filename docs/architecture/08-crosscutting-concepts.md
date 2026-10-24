@@ -54,11 +54,11 @@ Standard `ILogger` to the console. Security events have their own category, `Not
 
 ## Markdown dialect and links
 
-Notes uses Joplin's Markdown: GitHub-flavored Markdown plus KaTeX math, Mermaid, `==mark==`, `++insert++`, `~sub~`, `^sup^`. Links to other notes and attachments are `:/<32-hex id>`. HTML notes (`markup_language = 2`) are rendered as sanitized HTML. The export rewrites `:/` links to relative file paths.
+Notes uses GitHub-flavored Markdown plus KaTeX math, Mermaid, `==mark==`, `++insert++`, `~sub~`, `^sup^`. Links to other notes and attachments are `:/<32-hex id>`. HTML notes (`markup_language = 2`) are rendered as sanitized HTML. The export rewrites `:/` links to relative file paths.
 
 ## User interface
 
-- Same components and design as Joplin Web: Tailwind CSS 4 with the tokens in `index.css` (`bg-background`, `text-muted-foreground`, …), shadcn/ui primitives, light and dark theme, layouts for phone (one pane at a time) and desktop (three panes).
+- One set of components and design: Tailwind CSS 4 with the tokens in `index.css` (`bg-background`, `text-muted-foreground`, …), shadcn/ui primitives, light and dark theme, layouts for phone (one pane at a time) and desktop (three panes).
 - Server state only through TanStack Query hooks; mutations write the server's answer into the affected caches (the note, lists) and invalidate the rest (counts, tags).
 - Unsaved text is kept as drafts in `localStorage`, owned by the signed-in account and dropped on sign-out.
 - Only `lib/api.ts` knows the backend, so the UI can move into a shared library later.

@@ -1,6 +1,6 @@
 # Notes
 
-Self-hosted Markdown notes app: notebooks, tags, search, attachments, to-dos, version history, multiple users (an administrator adds them, no public registration). A React SPA talks to a .NET 10 backend that stores everything in PostgreSQL. Deployed as a Docker Compose stack (app + Postgres) in a Proxmox LXC. The UI came from [joplin-web](https://github.com/KamiNeko/joplin-web) and should stay 1:1 with it.
+Self-hosted Markdown notes app: notebooks, tags, search, attachments, to-dos, version history, multiple users (an administrator adds them, no public registration). A React SPA talks to a .NET 10 backend that stores everything in PostgreSQL. Deployed as a Docker Compose stack (app + Postgres) in a Proxmox LXC.
 
 Security is a first-class requirement and the project follows the EU Cyber Resilience Act. Read the architecture documentation ([docs/architecture/](docs/architecture/README.md), arc42) before touching the data model, sessions/security, versions, search, export or the REST API, and [docs/security.md](docs/security.md) plus [docs/cra.md](docs/cra.md) before touching authentication, logging, dependencies, the build or releases.
 
@@ -35,7 +35,7 @@ Node.js 24 (`.nvmrc`): the client tests fail on Node 22 (jsdom `Blob` in `Respon
 - Validate ids with `Ids.TryParse` (32 hex characters). Errors are thrown as `ApiException` and become JSON `{ error, status, details? }`.
 - Note writes keep conflict detection (`baseUpdatedTime` → 409 with `details.current`) and call `VersionService.SnapshotBeforeChangeAsync` before changing title or body.
 - Schema changes need an EF migration (raw SQL for what EF can't express, e.g. trigram indexes). Never edit an applied migration.
-- Notes stay plain Markdown compatible with Joplin's dialect (`:/<id>` links to notes and attachments).
+- Notes stay plain Markdown (GFM plus the extensions in `lib/markdown-extensions.ts`, `:/<id>` links to notes and attachments).
 - New or changed endpoints need a test in `backend/tests`. Keep the build warning-free (`TreatWarningsAsErrors`).
 - Client: server state goes through TanStack Query hooks in `client/src/hooks`; mutations invalidate the affected queries. Only `lib/api.ts` knows the backend, so the UI can later move into a shared library. Style with Tailwind tokens from `index.css`; both themes and phone width must work.
 - Match the surrounding code: XML docs / JSDoc on public members, comments only where intent isn't obvious.
