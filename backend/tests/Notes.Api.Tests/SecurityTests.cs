@@ -1,13 +1,16 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Notes.Api.Auth;
 using Notes.Api.Data;
@@ -114,6 +117,66 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         var custom = Infrastructure.TrustedProxies.Parse("203.0.113.7, 2001:db8::/32");
         Assert.Contains(custom, n => n.Contains(IPAddress.Parse("203.0.113.7")));
         Assert.Throws<InvalidOperationException>(() => Infrastructure.TrustedProxies.Parse("not-an-address"));
+    }
+
+    [Fact]
+    public async Task The_api_rate_limit_answers_429_with_retry_after()
+    {
+        using var limited = app.WithWebHostBuilder(builder => builder.UseSetting("Notes:RateLimitMax", "3"));
+        using var client = limited.CreateClient();
+        for (var i = 0; i < 3; i++) Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/health")).StatusCode);
+
+        var refused = await client.GetAsync("/api/health");
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+        Assert.Equal(429, (await refused.ReadJsonAsync()).GetProperty("status").GetInt32());
+        // The static client isn't rate limited
+        Assert.NotEqual(HttpStatusCode.TooManyRequests, (await client.GetAsync("/")).StatusCode);
+    }
+
+    [Fact]
+    public async Task The_public_url_is_an_allowed_origin_and_makes_the_cookie_secure()
+    {
+        using var proxied = app.WithWebHostBuilder(builder => builder.UseSetting("Notes:PublicUrl", "https://notes.example.com"));
+        async Task<HttpResponseMessage> LoginFromAsync(string origin)
+        {
+            using var client = proxied.CreateClient();
+            client.DefaultRequestHeaders.Add("Origin", origin);
+            return await client.PostAsJsonAsync("/api/auth/login", new { email = "admin@notes.test", password = "admin-password" });
+        }
+
+        // The app sees http://localhost, the browser shows the public URL (a proxy without forwarded host)
+        var allowed = await LoginFromAsync("https://notes.example.com");
+        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+        Assert.Contains(allowed.Headers.GetValues("Set-Cookie"), c => c.StartsWith("__Host-notes_session=", StringComparison.Ordinal) && c.Contains("secure", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(HttpStatusCode.Forbidden, (await LoginFromAsync("https://notes.example.com.evil.test")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await LoginFromAsync("http://notes.example.com:8443")).StatusCode);
+    }
+
+    [Fact]
+    public void The_upload_limit_comes_from_max_upload_mb()
+    {
+        using var limited = app.WithWebHostBuilder(builder => builder.UseSetting("Notes:MaxUploadMb", "2"));
+        var kestrel = limited.Services.GetRequiredService<IOptions<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>>().Value;
+        Assert.Equal(2L * 1024 * 1024, kestrel.Limits.MaxRequestBodySize);
+    }
+
+    [Fact]
+    public async Task Too_large_uploads_are_answered_with_413_and_a_message()
+    {
+        // Kestrel enforces Notes__MaxUploadMb (the test server has no body limit); the error middleware words the answer
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        var middleware = new ErrorHandlingMiddleware(
+            _ => throw new BadHttpRequestException("Request body too large.", StatusCodes.Status413PayloadTooLarge),
+            NullLogger<ErrorHandlingMiddleware>.Instance);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(StatusCodes.Status413PayloadTooLarge, context.Response.StatusCode);
+        context.Response.Body.Position = 0;
+        var body = await JsonDocument.ParseAsync(context.Response.Body);
+        Assert.Equal("The file is too large to upload", body.RootElement.Str("error"));
     }
 
     [Theory]
