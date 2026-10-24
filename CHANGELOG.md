@@ -4,6 +4,10 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Added
+
+- **Version changes:** the version history has a *Changes* view that shows what changed from the selected version to the current note: the title and a line diff of the text, with unchanged stretches folded.
+
 ## [0.2.0] - 2026-10-24
 
 ### Added

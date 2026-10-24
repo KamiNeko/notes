@@ -52,7 +52,7 @@ Not included, on purpose: offline mode, sharing notes with others, and end-to-en
 | ✅ **To-dos** | Create to-dos and tick them off, right from the note list. Set, change or clear due dates; overdue to-dos are highlighted. |
 | 🏷️ **Tags** | Tag notes, browse by tag, rename and delete tags. |
 | 🔎 **Search** | Instant search across titles and content (`Ctrl+K`): all words must match, `"exact phrases"`, `-word` to exclude, and filters `tag:`, `notebook:`, `type:todo`, `iscompleted:0`. |
-| 🕰️ **Version history** | Before an editing session changes a note, its previous state is kept as a version. Preview any version and restore it; the replaced text becomes a version too, so a restore can be undone. Optional retention period. |
+| 🕰️ **Version history** | Before an editing session changes a note, its previous state is kept as a version. Preview any version, see what changed since (line by line), and restore it; the replaced text becomes a version too, so a restore can be undone. Optional retention period. |
 | 📦 **Export** | Download all your notes as a ZIP of Markdown files with front matter, in notebook folders, with attachments and working links. Your notes are never locked in. |
 | 🗑️ **Trash** | Deleted notes and notebooks go to the trash, where you can restore them or delete them permanently. |
 | ⚔️ **Conflict detection** | If a note was changed in another tab or on another device while you edited it, you choose which version to keep. |
@@ -90,7 +90,7 @@ Found a vulnerability? Please report it privately, as described in the [security
     <td colspan="2"><img src="docs/images/version-history.png" alt="Version history of a note"></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><em>Version history: preview an earlier state and restore it</em></td>
+    <td colspan="2" align="center"><em>Version history: see what changed since an earlier state, preview it and restore it</em></td>
   </tr>
   <tr>
     <td colspan="2"><img src="docs/images/editor-split.png" alt="Split-view Markdown editor"></td>

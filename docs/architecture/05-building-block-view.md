@@ -48,7 +48,7 @@ Middleware order: forwarded headers (if trusted) → security headers → error 
 
 | Folder | Responsibility |
 | :--- | :--- |
-| `src/lib/` | `api.ts` (the only module that knows the backend: fetch wrapper, session expiry, all calls), `types.ts`, `drafts.ts`, `connection.ts`, formatting and Markdown helpers. |
+| `src/lib/` | `api.ts` (the only module that knows the backend: fetch wrapper, session expiry, all calls), `types.ts`, `drafts.ts`, `connection.ts`, formatting and Markdown helpers, `line-diff.ts` (line diff for the version history). |
 | `src/hooks/` | TanStack Query hooks per resource; mutations update or invalidate the affected queries. `use-auth.ts` holds the session state. |
 | `src/components/` | `layout/` (header, sidebar, connection status), `notes/` (list, viewer, editor, history), `notebooks/`, `tags/`, `account/` (password and user dialogs), `common/` (Markdown renderer, dialogs), `ui/` (generated shadcn/ui). |
 | `src/pages/` | `LoginPage`, `NotesPage` (all note routes). |
