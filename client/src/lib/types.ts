@@ -139,6 +139,20 @@ export interface NoteVersionDetail {
 }
 
 /**
+ * A place where the account is signed in (one browser or API client).
+ */
+export interface SignInSession {
+  id: string;
+  createdTime: number;
+  lastSeenTime: number;
+  expiresTime: number;
+  /** The browser's User-Agent at sign-in, shortened; empty for clients that send none */
+  userAgent: string;
+  /** The session making this request */
+  current: boolean;
+}
+
+/**
  * Server settings the UI shows to the user.
  */
 export interface ServerSettings {

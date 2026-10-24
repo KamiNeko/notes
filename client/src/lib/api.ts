@@ -9,6 +9,7 @@ import {
   UserInfo,
   NoteVersion,
   NoteVersionDetail,
+  SignInSession,
   ServerSettings,
 } from "./types";
 import { changePendingWrites, recordNetworkError, recordResponse } from "./connection";
@@ -630,6 +631,32 @@ export async function restoreNoteVersion(noteId: string, versionId: string, base
     method: "POST",
     body: JSON.stringify({ baseUpdatedTime }),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Own sessions
+// ---------------------------------------------------------------------------
+
+/**
+ * Lists where the signed-in user is signed in, most recently used first.
+ */
+export async function getSessions(): Promise<SignInSession[]> {
+  return request<SignInSession[]>("/api/auth/sessions");
+}
+
+/**
+ * Signs out one of the user's sessions (another device, or this one).
+ */
+export async function endSession(id: string): Promise<void> {
+  await request(`/api/auth/sessions/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Signs out every session of the user except this one. Returns how many were ended.
+ */
+export async function endOtherSessions(): Promise<number> {
+  const result = await request<{ ended: number }>("/api/auth/sessions", { method: "DELETE" });
+  return result.ended;
 }
 
 // ---------------------------------------------------------------------------
