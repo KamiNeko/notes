@@ -181,6 +181,34 @@ test("exports all notes as a ZIP of Markdown files", async ({ page }) => {
   expect(zip.includes("Website Relaunch Roadmap.md")).toBe(true);
 });
 
+test("imports the export into a new notebook", async ({ page, baseURL }) => {
+  await signIn(page);
+  const zip = await (await page.request.get("/api/export")).body();
+
+  await page.getByRole("button", { name: "User account menu" }).click();
+  await page.getByRole("menuitem", { name: "Import notes" }).click();
+  const dialog = page.getByRole("dialog", { name: "Import notes" });
+  await dialog.getByLabel("ZIP file").setInputFiles({ name: "export.zip", mimeType: "application/zip", buffer: zip });
+  await dialog.getByRole("button", { name: "Import" }).click();
+  await expect(dialog.getByRole("status")).toContainText(/Imported \d+ notes/);
+  await dialog.getByRole("button", { name: "Open notebook" }).click();
+  await expect(page).toHaveURL(/\/notebooks\/[0-9a-f]{32}$/);
+  const notebookId = page.url().split("/").pop()!;
+
+  try {
+    // The export keeps notes in their notebook folders, so they land in sub-notebooks of the import;
+    // "Import …" sorts before the demo's own notebooks
+    await page.getByRole("complementary").first().getByRole("button", { name: /^Projects/ }).first().click();
+    await expect(page).not.toHaveURL(new RegExp(`/notebooks/(${notebookId}|${demoId("nb-projects")})$`));
+    await expect(page.getByText("Website Relaunch Roadmap")).toBeVisible();
+  } finally {
+    // Leave the demo as it was for the other tests, even when a step above failed
+    const headers = { Origin: new URL(baseURL!).origin };
+    expect((await page.request.delete(`/api/notebooks/${notebookId}`, { headers })).ok()).toBe(true);
+    expect((await page.request.delete(`/api/notebooks/${notebookId}?permanent=true`, { headers })).ok()).toBe(true);
+  }
+});
+
 test("navigates on a phone between menu, list and note @phone", async ({ page }) => {
   await signIn(page);
 

@@ -13,6 +13,7 @@ import {
   removeTagFromNote,
   renameTag,
   deleteTag,
+  importNotes,
   NoteUpdate,
 } from "@/lib/api";
 import { Note, NoteListItem, SearchResult } from "@/lib/types";
@@ -205,5 +206,16 @@ export function useDeleteTag() {
       invalidateLists(queryClient);
       queryClient.invalidateQueries({ queryKey: ["note"] });
     },
+  });
+}
+
+/**
+ * Imports a ZIP of Markdown files into a new notebook and refreshes every list.
+ */
+export function useImportNotes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: importNotes,
+    onSuccess: () => invalidateLists(queryClient),
   });
 }

@@ -52,6 +52,8 @@ public class NotesOptions
 
     /// <summary>Attachment space per user, in MB; 0 is unlimited. Administrators can override it per user.</summary>
     public int QuotaMb { get; set; }
+    /// <summary>Largest ZIP accepted by the import, in MB.</summary>
+    public int MaxImportMb { get; set; } = 200;
 
     /// <summary>API requests per client address and 15 minutes.</summary>
     public int RateLimitMax { get; set; } = 1000;
@@ -107,6 +109,7 @@ public static class NotesOptionsValidator
         AtLeast(errors, nameof(options.AttachmentCleanupDays), options.AttachmentCleanupDays, 0);
         AtLeast(errors, nameof(options.MaxUploadMb), options.MaxUploadMb, 1);
         AtLeast(errors, nameof(options.QuotaMb), options.QuotaMb, 0);
+        AtLeast(errors, nameof(options.MaxImportMb), options.MaxImportMb, 1);
         AtLeast(errors, nameof(options.RateLimitMax), options.RateLimitMax, 1);
         AtLeast(errors, nameof(options.LoginRateLimitMax), options.LoginRateLimitMax, 1);
         AtLeast(errors, nameof(options.LoginMaxFailures), options.LoginMaxFailures, 1);

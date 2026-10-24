@@ -13,6 +13,7 @@ import {
   ServerSettings,
   AdminUser,
   StorageUsage,
+  ImportResult,
 } from "./types";
 import { changePendingWrites, recordNetworkError, recordResponse } from "./connection";
 
@@ -592,6 +593,17 @@ export async function uploadResource(file: File): Promise<UploadedResource> {
  */
 export async function getStorage(): Promise<StorageUsage> {
   return request<StorageUsage>("/api/storage");
+}
+
+/**
+ * Imports a ZIP of Markdown files (the export's format, or e.g. an Obsidian vault) into a new notebook.
+ */
+export async function importNotes(file: File): Promise<ImportResult> {
+  return request<ImportResult>("/api/import", {
+    method: "POST",
+    body: file,
+    headers: { "Content-Type": "application/zip" },
+  });
 }
 
 /**

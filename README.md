@@ -53,7 +53,7 @@ Not included, on purpose: offline mode, sharing notes with others, and end-to-en
 | 🏷️ **Tags** | Tag notes, browse by tag, rename and delete tags. |
 | 🔎 **Search** | Instant search across titles and content (`Ctrl+K`): all words must match, `"exact phrases"`, `-word` to exclude, and filters `tag:`, `notebook:`, `type:todo`, `iscompleted:0`. |
 | 🕰️ **Version history** | Before an editing session changes a note, its previous state is kept as a version. Preview any version, see what changed since (line by line), and restore it; the replaced text becomes a version too, so a restore can be undone. Optional retention period. |
-| 📦 **Export** | Download all your notes as a ZIP of Markdown files with front matter, in notebook folders, with attachments and working links. Your notes are never locked in. |
+| 📦 **Export & import** | Download all your notes as a ZIP of Markdown files with front matter, in notebook folders, with attachments and working links. Import such a ZIP (or an Obsidian vault) into a new notebook, with tags, to-dos and links restored. Your notes are never locked in. |
 | 🗑️ **Trash** | Deleted notes and notebooks go to the trash, where you can restore them or delete them permanently. Optionally emptied automatically after a number of days. |
 | ⚔️ **Conflict detection** | If a note was changed in another tab or on another device while you edited it, you choose which version to keep. |
 | 👥 **Users** | Administrators add accounts, reset passwords, grant the administrator role, set storage limits and delete users (account menu > *Manage users*). Everyone can change their own password. |
@@ -145,6 +145,7 @@ Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app 
 | `NOTES_MAX_UPLOAD_MB` | `Notes__MaxUploadMb` | `25` | Largest attachment. |
 | `NOTES_ATTACHMENT_CLEANUP_DAYS` | `Notes__AttachmentCleanupDays` | `0` | Delete attachments that no note, trashed note or version links to this many days after upload, and stray files without a database row (`0` keeps them). |
 | `NOTES_QUOTA_MB` | `Notes__QuotaMb` | `0` | Attachment space per user in MB (`0`: unlimited). Administrators can set another limit per user. |
+| `NOTES_MAX_IMPORT_MB` | `Notes__MaxImportMb` | `200` | Largest ZIP accepted by *Import notes*. |
 | `NOTES_ALLOW_REMOTE_IMAGES` | `Notes__AllowRemoteImages` | `false` | Show `https:` images from other websites in notes. Off by default because each remote image tells its host who opened the note. |
 | | `Notes__VersionIntervalMinutes` | `10` | Edits within this many minutes of the last version don't create another one. |
 | | `Notes__SessionLifetimeDays`, `Notes__SessionMaxAgeDays` | `30`, `90` | A session ends after this many days without use, and at the latest this many days after sign-in. |

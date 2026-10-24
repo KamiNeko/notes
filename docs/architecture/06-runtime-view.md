@@ -76,6 +76,16 @@ If a save fails because the server is unreachable, the draft stays in `localStor
 
 `GET /api/export` → `ExportService` loads the user's active notebooks, notes with tags, and attachments, computes unique, filesystem-safe paths (`Notebook/Sub/Note.md`, `_resources/file.png`), writes a ZIP into a temporary file in the data directory (each note with YAML front matter, `:/<id>` links rewritten to relative paths) and streams it to the browser. The temporary file is deleted when the download ends; leftovers from a crash are removed on start.
 
+## Import
+
+`POST /api/import` → `ImportService` copies the body into a temporary file in the data directory (a ZIP is read from its end), refuses archives with more than 20,000 entries or that unpack to more than 10 × `Notes__MaxImportMb`, and never unpacks to disk: entry names are only normalized (no absolute paths, no `..`) to name notebooks and resolve links. Hidden files and `__MACOSX/` are ignored, entries larger than `Notes__MaxUploadMb` or with unsafe paths are skipped and reported.
+
+1. Every file that isn't a note (`.md`, `.markdown`, `.html`) is stored through `ResourceService`, like an upload (same MIME detection and limits).
+2. Notes get new ids up front, so relative links between them and to attachments (`](path)`, `src="…"`, `href="…"`) are rewritten to `:/<id>`; web links and unknown paths stay.
+3. In one save, a top-level notebook "Import <date>" is created with a notebook per folder below it, notes with title, dates, tags (joined case-insensitively with existing ones) and to-do state from the front matter.
+
+If anything fails, the attachments created so far are deleted again, so a failed import leaves nothing behind.
+
 ## Trash and restore
 
 - Trashing a notebook stamps it and everything below it (notebooks and notes) with the same `deleted_time`.

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Notes.Api.Auth;
@@ -66,6 +67,19 @@ public static class ApiEndpoints
             // Everything an account holds in one download: the first thing to look for after a stolen session
             SecurityLog.DataExported(loggers.CreateLogger(SecurityLog.Category), Ids.Format(user.UserId()), SecurityLog.Client(context));
             return Results.Stream(zip, "application/zip", $"notes-export-{clock.GetUtcNow():yyyy-MM-dd}.zip");
+        });
+        // A ZIP of Markdown files (the export's format) into a new notebook; the body is the raw ZIP
+        authed.MapPost("/import", async (HttpContext context, ClaimsPrincipal user, ImportService import, IOptions<NotesOptions> options,
+            ILoggerFactory loggers, CancellationToken ct) =>
+        {
+            // Larger than an attachment: the ZIP holds all of them
+            if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit)
+            {
+                limit.MaxRequestBodySize = (long)options.Value.MaxImportMb * 1024 * 1024;
+            }
+            var result = await import.ImportAsync(user.UserId(), context.Request.Body, ct);
+            SecurityLog.DataImported(loggers.CreateLogger(SecurityLog.Category), Ids.Format(user.UserId()), result.Notes, result.Attachments, SecurityLog.Client(context));
+            return Results.Created((string?)null, result);
         });
         MapAdmin(api.MapGroup("/admin").RequireAuthorization(SessionClaims.AdminPolicy));
     }

@@ -37,7 +37,7 @@ flowchart TB
 | `Program.cs` | Dependency injection, Kestrel limits, forwarded headers, the middleware order, startup (migrations, first administrator, demo seed, cleanup). The arguments `healthcheck` and `users …` run CLI commands instead of the server. |
 | `Endpoints/ApiEndpoints.cs` | All routes as minimal APIs. Handlers only parse, call a service and return a DTO. |
 | `Auth/` | `UserService` (accounts, passwords), `SessionService` (server-side sessions), `SessionCookies`, `SessionAuthenticationHandler` (the `Session` scheme), `LoginThrottle` (account lock). |
-| `Services/` | One service per resource: `NotebookService`, `NoteService`, `VersionService`, `TagService`, `SearchService` (with the `SearchQuery` parser), `ResourceService` (with `ResourceTypes`), `ExportService`, `TrashService` (empties old trash). Plus `TextPreview` (list previews), `Titles`, `Dtos.cs` (all JSON shapes) and `Housekeeping` (daily background job). |
+| `Services/` | One service per resource: `NotebookService`, `NoteService`, `VersionService`, `TagService`, `SearchService` (with the `SearchQuery` parser), `ResourceService` (with `ResourceTypes`), `ExportService`, `ImportService` (with the `FrontMatter` reader), `TrashService` (empties old trash). Plus `TextPreview` (list previews), `Titles`, `Dtos.cs` (all JSON shapes) and `Housekeeping` (daily background job). |
 | `Data/` | Entities, `NotesDbContext`, migrations, the demo seed (`DemoSeed.json`, `DemoSeeder`). |
 | `Infrastructure/` | `NotesOptions`, `ApiException`, `Ids`, `Times`, middleware (errors, Origin check, security headers), `RateLimits`, `TrustedProxies`, `SecurityLog`. |
 | `Cli/` | `UserCommands` (`users list|add|set-password`), `HealthCheck`. |
@@ -106,4 +106,5 @@ All routes except `/api/health` and `/api/auth/login` need a session. Bodies and
 | `GET /api/settings` | Settings the UI shows: `{ trashRetentionDays }` |
 | `GET /api/export` | ZIP of all active notes as Markdown with attachments |
 | `GET /api/storage` | `{ usedBytes, quotaBytes }`: space the user's attachments take and their limit (`null`: unlimited). Uploads past the limit get 413 with `details: { usedBytes, quotaBytes }`. |
+| `POST /api/import` | Raw ZIP body (at most `Notes__MaxImportMb`) → 201 `{ notebookId, notebookTitle, notes, notebooks, attachments, skipped: [{ path, reason }], skippedCount }`. 400 for a damaged or non-ZIP file, 413 when it is too large or unpacks to too much. |
 | `GET/POST /api/admin/users` · `PUT/DELETE /api/admin/users/{id}` | Administrators only: list (with `quotaMb` and `usedBytes`), create, change (name, role, password, storage limit via `quotaMb` or `resetQuota`), delete. The last administrator can't be demoted or deleted; nobody can delete their own account. |
