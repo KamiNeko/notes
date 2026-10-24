@@ -106,7 +106,7 @@ Each decision is recorded with its context, the decision and its consequences. N
 
 *Accepted, October 2026.*
 
-**Context.** The export (ADR-10) had no way back: moving to another server or restoring one account meant re-creating notes by hand. A Joplin importer (JEX, RAW) would need Joplin's item format and is out of scope.
+**Context.** The export (ADR-10) had no way back: moving to another server or restoring one account meant re-creating notes by hand. Importers for other apps' own formats are out of scope.
 
 **Decision.** `POST /api/import` reads the export's format: folders, Markdown/HTML files with the same front matter keys, other files as attachments, relative links. Obsidian vaults and similar folders of Markdown work as a subset. Everything goes into a new top-level notebook, with new ids; nothing existing is merged or overwritten. The archive is read in place, never unpacked to disk, with limits on size, entry count and unpacked size.
 
