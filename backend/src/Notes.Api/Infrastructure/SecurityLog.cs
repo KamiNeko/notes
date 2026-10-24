@@ -22,6 +22,12 @@ public static partial class SecurityLog
     [LoggerMessage(EventId = 1003, Level = LogLevel.Information, Message = "Signed out {UserId}")]
     public static partial void LoggedOut(ILogger logger, string userId);
 
+    [LoggerMessage(EventId = 1004, Level = LogLevel.Information, Message = "{UserId} ended their session {SessionId} from {Client}")]
+    public static partial void SessionEnded(ILogger logger, string userId, string sessionId, string client);
+
+    [LoggerMessage(EventId = 1005, Level = LogLevel.Information, Message = "{UserId} ended their {Count} other sessions from {Client}")]
+    public static partial void OtherSessionsEnded(ILogger logger, string userId, int count, string client);
+
     [LoggerMessage(EventId = 1010, Level = LogLevel.Information, Message = "{UserId} changed their password; their other sessions were ended")]
     public static partial void PasswordChanged(ILogger logger, string userId);
 

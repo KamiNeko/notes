@@ -17,7 +17,7 @@ Notes is built for a household or a small team on a server you control. It assum
 | :--- | :--- |
 | Password guessing | Per-address rate limit (30 sign-ins per 15 minutes), plus a per-account lock after 10 failed sign-ins in 15 minutes from any address. Unknown accounts are answered exactly like wrong passwords, in the same time. |
 | Stolen database or backup | Passwords are stored as PBKDF2-HMAC-SHA512 hashes (210,000 iterations, salted). Sessions are stored as SHA-256 hashes of the token, so a database copy can't be used to sign in. |
-| Stolen session cookie | The cookie is `HttpOnly` (not readable by scripts), `SameSite=Strict` and, over HTTPS, `Secure` with the `__Host-` prefix. Sessions end after 30 days without use and at most 90 days after sign-in. Changing your password ends your other sessions; an admin's password reset ends all of them. |
+| Stolen session cookie | The cookie is `HttpOnly` (not readable by scripts), `SameSite=Strict` and, over HTTPS, `Secure` with the `__Host-` prefix. Sessions end after 30 days without use and at most 90 days after sign-in. Changing your password ends your other sessions; an admin's password reset ends all of them. Every user can see where they are signed in and sign out a lost device (*Signed-in devices*). |
 | Cross-site request forgery | `SameSite=Strict`, and every write must come from the app's own `Origin`. |
 | Cross-site scripting through note content | Markdown and HTML notes are sanitized before rendering. A strict Content Security Policy (`script-src 'self'`, no inline scripts) blocks injected scripts even if sanitizing ever missed something. |
 | Malicious attachments | Attachments are served with `X-Content-Type-Options: nosniff`, a sandboxing CSP, and as downloads unless they are images, PDF, plain text, audio or video. SVG and HTML files are always downloads. File names are cleaned, and files are stored under random ids, never under their uploaded names. |
@@ -60,6 +60,8 @@ Security events are logged under the category `Notes.Security` with stable event
 | 1001 | Sign-in failed (wrong password or unknown account) | Warning |
 | 1002 | Sign-in refused: account locked after too many failures | Warning |
 | 1003 | Signed out | Information |
+| 1004 | User signed out one of their sessions from *Signed-in devices* | Information |
+| 1005 | User signed out all their other sessions | Information |
 | 1010 | User changed their own password | Information |
 | 1020–1024 | Administrator created a user, reset a password, changed the administrator role, deleted a user, changed a storage limit | Information |
 | 1030 | Write refused: request from a foreign origin (possible CSRF) | Warning |
@@ -67,11 +69,11 @@ Security events are logged under the category `Notes.Security` with stable event
 | 1040 | The demo account exists | Warning |
 | 1050 | User downloaded the export of all their notes | Information |
 
-Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limit\|exported"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
+Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limit\|exported\|session"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
 
 ## Data protection
 
-- **Deleting data:** notes and notebooks go to the trash first; deleting them from the trash removes them, their versions and tags links from the database. Deleting a user removes all their data, including attachment files. Database backups you made keep the data until you delete them.
+- **Deleting data:** notes and notebooks go to the trash first; deleting them from the trash removes them, their versions and tags links from the database. Set `NOTES_TRASH_RETENTION_DAYS` to empty the trash automatically, and `NOTES_ATTACHMENT_CLEANUP_DAYS` to delete attachments no note links to any more (removing a link from a note doesn't delete the file by itself). Deleting a user removes all their data, including attachment files. Database backups you made keep the data until you delete them.
 - **Version history** keeps earlier states of notes. Set `NOTES_VERSION_RETENTION_DAYS` to delete old versions automatically.
 - **No telemetry.** Notes makes no outgoing connections: no analytics, no update checks, no external fonts or scripts. Remote images in notes are blocked unless you set `NOTES_ALLOW_REMOTE_IMAGES=true`.
 - **Browser storage:** the client keeps only the theme, a few view settings, the signed-in email and unsaved drafts in `localStorage`. Signing out removes the email and the drafts, and the in-memory note cache and loaded attachments are dropped, so the next person at a shared computer finds nothing.

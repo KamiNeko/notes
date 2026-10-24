@@ -155,3 +155,25 @@ export interface NoteVersionDetail {
   updatedTime: number;
   createdTime: number;
 }
+
+/**
+ * A place where the account is signed in (one browser or API client).
+ */
+export interface SignInSession {
+  id: string;
+  createdTime: number;
+  lastSeenTime: number;
+  expiresTime: number;
+  /** The browser's User-Agent at sign-in, shortened; empty for clients that send none */
+  userAgent: string;
+  /** The session making this request */
+  current: boolean;
+}
+
+/**
+ * Server settings the UI shows to the user.
+ */
+export interface ServerSettings {
+  /** Days a note or notebook stays in the trash before it is deleted for good; 0 = until emptied */
+  trashRetentionDays: number;
+}

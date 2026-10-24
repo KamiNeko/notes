@@ -241,7 +241,7 @@ public class NotebookService(NotesDbContext db, TimeProvider clock)
     }
 
     /// <summary>The notebook and all notebooks below it (trashed or not).</summary>
-    private async Task<List<Guid>> SubtreeIdsAsync(Guid userId, Guid rootId, CancellationToken ct)
+    internal async Task<List<Guid>> SubtreeIdsAsync(Guid userId, Guid rootId, CancellationToken ct)
     {
         var parents = await db.Notebooks.AsNoTracking()
             .Where(n => n.UserId == userId && n.ParentId != null)

@@ -136,6 +136,52 @@ public class ResourceService(NotesDbContext db, TimeProvider clock, IOptions<Not
         if (File.Exists(path)) File.Delete(path);
     }
 
+    /// <summary>
+    /// Deletes attachments older than <see cref="NotesOptions.AttachmentCleanupDays"/> that no note
+    /// (also in the trash) and no version links to, and attachment files without a row (left by a
+    /// crash between file and row write, or <c>.upload</c> leftovers). The grace period keeps an
+    /// upload whose note isn't saved yet. Returns the number of attachments and stray files deleted.
+    /// </summary>
+    public async Task<(int Attachments, int Files)> DeleteUnusedAsync(DateTimeOffset now, CancellationToken ct = default)
+    {
+        var days = options.Value.AttachmentCleanupDays;
+        if (days <= 0) return (0, 0);
+        var cutoff = now - TimeSpan.FromDays(days);
+
+        var candidates = await db.Resources.AsNoTracking()
+            .Where(r => r.CreatedTime < cutoff)
+            .Select(r => new { r.Id, r.UserId })
+            .ToListAsync(ct);
+        var attachments = 0;
+        foreach (var candidate in candidates)
+        {
+            var link = ":/" + Ids.Format(candidate.Id);
+            var linked = await db.Notes.AnyAsync(n => n.UserId == candidate.UserId && n.Body.Contains(link), ct)
+                || await db.NoteVersions.AnyAsync(v => v.UserId == candidate.UserId && v.Body.Contains(link), ct);
+            if (linked) continue;
+            attachments += await db.Resources.Where(r => r.Id == candidate.Id).ExecuteDeleteAsync(ct);
+            var path = FilePath(candidate.UserId, candidate.Id);
+            if (File.Exists(path)) File.Delete(path);
+        }
+
+        var files = 0;
+        var root = Path.Combine(Path.GetFullPath(options.Value.DataDirectory), "attachments");
+        if (!Directory.Exists(root)) return (attachments, files);
+        foreach (var directory in Directory.EnumerateDirectories(root))
+        {
+            if (!Ids.TryParse(Path.GetFileName(directory), out var userId)) continue;
+            var known = (await db.Resources.AsNoTracking().Where(r => r.UserId == userId).Select(r => r.Id).ToListAsync(ct)).ToHashSet();
+            foreach (var file in Directory.EnumerateFiles(directory))
+            {
+                if (Ids.TryParse(Path.GetFileName(file), out var id) && known.Contains(id.Value)) continue;
+                if (File.GetLastWriteTimeUtc(file) >= cutoff.UtcDateTime) continue;
+                File.Delete(file);
+                files++;
+            }
+        }
+        return (attachments, files);
+    }
+
     /// <summary>Deletes all attachment files of a user (their rows go with the user).</summary>
     public void DeleteAllFiles(Guid userId)
     {
