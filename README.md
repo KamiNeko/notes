@@ -130,7 +130,7 @@ Released versions are also published as signed multi-arch images (`ghcr.io/kamin
 
 ### Configuration
 
-Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app setting can also be set directly as `Notes__<Name>` (ASP.NET Core configuration).
+Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app setting can also be set directly as `Notes__<Name>` (ASP.NET Core configuration). Settings are checked on start: an invalid value (say `Notes__CookieSecure=yes` or a `NOTES_PUBLIC_URL` without `https://`) stops the app with a message naming it, instead of quietly running with a different policy.
 
 | `.env` | App setting | Default | Meaning |
 | :--- | :--- | :--- | :--- |

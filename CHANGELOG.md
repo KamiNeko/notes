@@ -18,6 +18,7 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 - **Breaking:** passwords need at least **12 characters** (was 8) and at most 1024. Existing passwords keep working; the rule applies the next time a password is set.
 - Passwords are hashed with 210,000 PBKDF2 iterations (was 100,000). Existing hashes are upgraded on the next sign-in.
 - Sessions end at the latest 90 days after sign-in, even when in use (`Notes__SessionMaxAgeDays`).
+- **Breaking:** invalid settings stop the start with a message naming them (an unknown `Notes__CookieSecure` value, a `Notes__PublicUrl` that isn't an absolute http(s) URL, limits below their minimum, unparsable `Notes__TrustedProxies`). Before, such values were silently replaced by defaults.
 - `docker-compose.yml` runs the app with a read-only filesystem, without Linux capabilities and with `no-new-privileges`. Base images are pinned by digest, GitHub Actions by commit, NuGet packages by lock file.
 
 ### Security
