@@ -174,6 +174,7 @@ To take Notes out of service and remove all data for good:
 | Symptom | Cause and fix |
 | :--- | :--- |
 | `set POSTGRES_PASSWORD in .env` on start | `.env` is missing or empty; copy `.env.example`. |
+| The container stops right away with *Invalid settings: …* | A setting has a value the app doesn't accept; the message names it and says what is allowed. Fix it in `.env` and start again. |
 | Log: *There are no users yet* | `NOTES_ADMIN_EMAIL`/`NOTES_ADMIN_PASSWORD` were not set on the first start; set them and restart, or use `users add … --admin`. |
 | Sign-in works, but saving says *Request origin not allowed* | The URL in the browser differs from what the app sees. Set `NOTES_PUBLIC_URL` to the exact URL, and `NOTES_TRUST_PROXY=true` behind a proxy. |
 | *Too many failed sign-ins for this account* | Ten wrong passwords in 15 minutes. Wait 15 minutes or restart the container. |

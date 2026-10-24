@@ -130,7 +130,7 @@ Released versions are also published as signed multi-arch images (`ghcr.io/kamin
 
 ### Configuration
 
-Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app setting can also be set directly as `Notes__<Name>` (ASP.NET Core configuration).
+Settings go into `.env`; `docker-compose.yml` passes them to the app. Every app setting can also be set directly as `Notes__<Name>` (ASP.NET Core configuration). Settings are checked on start: an invalid value (say `Notes__CookieSecure=yes` or a `NOTES_PUBLIC_URL` without `https://`) stops the app with a message naming it, instead of quietly running with a different policy.
 
 | `.env` | App setting | Default | Meaning |
 | :--- | :--- | :--- | :--- |
@@ -195,7 +195,7 @@ docs/      Guides, arc42 architecture, screenshots
 | `npm --prefix client run test:e2e` | Playwright smoke tests; starts backend and client itself (`E2E_DATABASE`) |
 | `npm --prefix client run screenshots` | README screenshots into `docs/images` (backend and client must run) |
 
-CI runs all of these on every pull request, plus the security checks above and a Docker image build. [`CLAUDE.md`](CLAUDE.md) describes the conventions for contributors and AI assistants alike.
+CI runs all of these on every pull request, plus the security checks above and a Docker image build. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report bugs and send changes; [`CLAUDE.md`](CLAUDE.md) has the same conventions in full, for contributors and AI assistants alike.
 
 ## License
 

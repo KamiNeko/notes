@@ -1,0 +1,47 @@
+name: Bug report
+description: Something doesn't work as it should. Security problems go to SECURITY.md instead.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Security problems:** please don't post them here, report them privately as described in [SECURITY.md](https://github.com/KamiNeko/notes/blob/main/SECURITY.md).
+        Never paste real notes, passwords, session tokens or your server's address.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a note
+        2. ...
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: From *About Notes* in the account menu, or `GET /api/health`.
+      placeholder: 0.1.0 (abc1234)
+    validations:
+      required: true
+  - type: input
+    id: deployment
+    attributes:
+      label: Deployment
+      description: How Notes runs, e.g. Docker Compose in a Proxmox LXC behind Caddy.
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Firefox 140 on Windows, Safari on iPhone
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log output
+      description: Relevant lines from `docker compose logs notes`, with email addresses and IP addresses removed.
+      render: text

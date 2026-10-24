@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -111,6 +112,30 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
         var custom = Infrastructure.TrustedProxies.Parse("203.0.113.7, 2001:db8::/32");
         Assert.Contains(custom, n => n.Contains(IPAddress.Parse("203.0.113.7")));
         Assert.Throws<InvalidOperationException>(() => Infrastructure.TrustedProxies.Parse("not-an-address"));
+    }
+
+    [Theory]
+    [InlineData("Notes:CookieSecure", "yes", "Notes__CookieSecure")]
+    [InlineData("Notes:PublicUrl", "notes.example.com", "Notes__PublicUrl")]
+    [InlineData("Notes:SessionLifetimeDays", "0", "Notes__SessionLifetimeDays")]
+    [InlineData("Notes:LoginMaxFailures", "-1", "Notes__LoginMaxFailures")]
+    public void Invalid_settings_stop_the_start_with_a_message_naming_them(string key, string value, string named)
+    {
+        using var broken = app.WithWebHostBuilder(builder => builder.UseSetting(key, value));
+        var error = Assert.Throws<InvalidOperationException>(() => broken.CreateClient());
+        Assert.Contains(named, error.Message);
+    }
+
+    [Fact]
+    public void Valid_settings_pass_and_every_problem_is_listed()
+    {
+        Assert.Empty(NotesOptionsValidator.Validate(new NotesOptions()));
+        Assert.Empty(NotesOptionsValidator.Validate(new NotesOptions { CookieSecure = "True", PublicUrl = "https://notes.example.com", TrustProxy = true, TrustedProxies = "10.0.0.1" }));
+        var errors = NotesOptionsValidator.Validate(new NotesOptions
+        {
+            PublicUrl = "ftp://notes.example.com", MaxUploadMb = 0, VersionRetentionDays = -1, TrustProxy = true, TrustedProxies = "proxy",
+        });
+        Assert.Equal(4, errors.Count);
     }
 
     [Fact]
