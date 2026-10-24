@@ -75,13 +75,14 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
     }
 
     /// <summary>
-    /// Changes an account (administrators). A new password signs the user out everywhere. The last
-    /// administrator can't lose the role.
+    /// Changes an account (administrators). A new password signs the user out everywhere, in the same
+    /// transaction as the new hash. The last administrator can't lose the role.
     /// </summary>
     public async Task<UserDto> UpdateAsync(string actor, Guid id, string? password, string? displayName, bool? isAdmin, CancellationToken ct = default)
     {
         var user = await FindAsync(id, ct) ?? throw ApiException.NotFound("User not found");
         if (displayName is not null) user.DisplayName = Titles.Clean(displayName);
+        var roleChanged = false;
         if (isAdmin is { } admin && admin != user.IsAdmin)
         {
             if (!admin && !await db.Users.AnyAsync(u => u.IsAdmin && u.Id != id, ct))
@@ -89,21 +90,30 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
                 throw ApiException.Conflict("There must be at least one administrator");
             }
             user.IsAdmin = admin;
-            SecurityLog.RoleChanged(log, actor, user.Email, admin);
+            roleChanged = true;
         }
         if (password is not null)
         {
             ValidatePassword(password);
             user.PasswordHash = hasher.HashPassword(user, password);
-            await db.Sessions.Where(s => s.UserId == id).ExecuteDeleteAsync(ct);
-            SecurityLog.PasswordReset(log, actor, user.Email);
         }
         user.UpdatedTime = Times.Now(clock);
-        await db.SaveChangesAsync(ct);
+
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            await db.SaveChangesAsync(ct);
+            if (password is not null) await db.Sessions.Where(s => s.UserId == id).ExecuteDeleteAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        if (roleChanged) SecurityLog.RoleChanged(log, actor, user.Email, user.IsAdmin);
+        if (password is not null) SecurityLog.PasswordReset(log, actor, user.Email);
         return ToDto(user);
     }
 
-    /// <summary>Changes the signed-in user's own password; other sessions of the user are ended.</summary>
+    /// <summary>
+    /// Changes the signed-in user's own password; other sessions of the user are ended, in the same
+    /// transaction as the new hash.
+    /// </summary>
     public async Task ChangeOwnPasswordAsync(Guid id, Guid currentSessionId, string currentPassword, string newPassword, CancellationToken ct = default)
     {
         var user = await FindAsync(id, ct) ?? throw ApiException.NotFound("User not found");
@@ -114,8 +124,10 @@ public class UserService(NotesDbContext db, TimeProvider clock, IPasswordHasher<
         ValidatePassword(newPassword);
         user.PasswordHash = hasher.HashPassword(user, newPassword);
         user.UpdatedTime = Times.Now(clock);
-        await db.Sessions.Where(s => s.UserId == id && s.Id != currentSessionId).ExecuteDeleteAsync(ct);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         await db.SaveChangesAsync(ct);
+        await db.Sessions.Where(s => s.UserId == id && s.Id != currentSessionId).ExecuteDeleteAsync(ct);
+        await tx.CommitAsync(ct);
     }
 
     /// <summary>Deletes an account with all its notes, notebooks, tags, versions and attachments.</summary>

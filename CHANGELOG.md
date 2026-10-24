@@ -11,6 +11,7 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 - `Notes__TrustedProxies`: the addresses a reverse proxy may connect from (defaults to private networks).
 - Release workflow: multi-arch images on GHCR with signed build provenance, SBOM attestations and CycloneDX SBOMs attached to each GitHub release.
 - CodeQL, OpenSSF Scorecard, dependency review, NuGet and npm audit and a container image scan in CI; Dependabot for all dependency ecosystems.
+- [Contributing guide](CONTRIBUTING.md) and issue and pull request templates.
 - Documentation: [security policy](SECURITY.md), [security guide](docs/security.md), [deployment guide](docs/deployment.md), [CRA compliance](docs/cra.md) and the architecture documentation in [arc42](docs/architecture/README.md) form.
 
 ### Changed
@@ -18,6 +19,7 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 - **Breaking:** passwords need at least **12 characters** (was 8) and at most 1024. Existing passwords keep working; the rule applies the next time a password is set.
 - Passwords are hashed with 210,000 PBKDF2 iterations (was 100,000). Existing hashes are upgraded on the next sign-in.
 - Sessions end at the latest 90 days after sign-in, even when in use (`Notes__SessionMaxAgeDays`).
+- **Breaking:** invalid settings stop the start with a message naming them (an unknown `Notes__CookieSecure` value, a `Notes__PublicUrl` that isn't an absolute http(s) URL, limits below their minimum, unparsable `Notes__TrustedProxies`). Before, such values were silently replaced by defaults.
 - `docker-compose.yml` runs the app with a read-only filesystem, without Linux capabilities and with `no-new-privileges`. Base images are pinned by digest, GitHub Actions by commit, NuGet packages by lock file.
 
 ### Security
@@ -26,6 +28,7 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 - Forwarded headers are only accepted from trusted proxy addresses.
 - New response headers: `Strict-Transport-Security` over HTTPS, `Permissions-Policy`, `Cache-Control: no-store` for API responses; the `Server` header is no longer sent.
 - Overlong passwords are refused before hashing.
+- A password change or reset that fails to save no longer ends the user's sessions while keeping the old password: the new hash and the session cleanup are one transaction, and the security log entry is written only after it committed.
 - Exports are logged as security event 1050 (who, from which address), since a full export is the first thing to look for after a stolen session.
 
 ## [0.1.0] - 2026-10-23

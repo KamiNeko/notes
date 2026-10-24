@@ -84,19 +84,22 @@ Ids are 32 lowercase hex characters (`Guid.ToString("N")`). Times are Unix milli
 
 ## REST API
 
-All routes except `/api/health` and `/api/auth/login` need a session. Bodies and answers are JSON with camelCase names. Errors are `{ error, status, details? }`.
+All routes except `/api/health` and `/api/auth/login` need a session. Bodies and answers are JSON with camelCase names, ids are 32 hex characters and times Unix milliseconds. Errors are `{ error, status, details? }`.
+
+**API clients** (scripts, other apps) sign in without an `Origin` header: the login answer then also carries `sessionId`, which they send as `Authorization: Bearer <sessionId>`. Browsers never get the token in the body, only the `HttpOnly` cookie. Writes without `Origin` are only accepted when they don't carry the session cookie (see [Request protection](08-crosscutting-concepts.md#request-protection)).
+
 
 | Route | |
 | :--- | :--- |
 | `GET /api/health` | `{ status, version, commit }` |
-| `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/check` · `POST /api/auth/password` | Sign in (`{ email, password }` → `{ userId, user }`; 401 wrong credentials, 429 locked), sign out, current user (`{ valid, user }`), change own password (`{ currentPassword, newPassword }`) |
-| `GET /api/notebooks` · `GET /api/notebooks/trash` · `POST /api/notebooks/refresh` | Tree with note counts and `counts` (all/trash), trashed notebooks, the tree again (the client's *Refresh*) |
-| `POST /api/notebooks` · `PUT /api/notebooks/{id}` · `DELETE /api/notebooks/{id}[?permanent=true]` · `POST /api/notebooks/{id}/restore` | Create, rename/move, trash or purge, restore |
+| `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/check` · `POST /api/auth/password` | Sign in (`{ email, password }` → `{ userId, user }`, plus `sessionId` for API clients; 401 wrong credentials, 429 locked), sign out, current user (`{ valid, user }`), change own password (`{ currentPassword, newPassword }` → 204; 400 wrong current password) |
+| `GET /api/notebooks` · `GET /api/notebooks/trash` · `POST /api/notebooks/refresh` | Tree of active notebooks (`{ id, title, parentId, children, noteCount, createdTime, updatedTime }[]`, `noteCount` counts direct notes), trashed notebooks (the top of each trashed subtree with `noteCount`, `notebookCount` and `earlierNoteCount`), the tree again (the client's *Refresh*) |
+| `POST /api/notebooks` · `PUT /api/notebooks/{id}` · `DELETE /api/notebooks/{id}[?permanent=true]` · `POST /api/notebooks/{id}/restore` | Create (`{ title, parentId? }` → 201), rename/move (`parentId: ""` moves to the top level; 400 for a move into itself), trash, purge (only from the trash, else 409), restore (409 when not in the trash). Trash, purge and restore answer the affected `{ notebooks, notes }` counts |
 | `GET /api/notes?notebookId=&tagId=&isTrash=` | Note list (previews, no bodies) |
-| `GET/POST/PUT/DELETE /api/notes[/{id}]` · `POST /api/notes/{id}/restore` | Read, create, update (`baseUpdatedTime` → 409 on conflict), trash or purge (`?permanent=true`), restore |
+| `GET/POST/PUT/DELETE /api/notes[/{id}]` · `POST /api/notes/{id}/restore` | Read, create (`{ parentId, title?, body?, isTodo? }` → 201), update (`title`, `body`, `parentId`, `todoCompleted`, `todoDue`; `baseUpdatedTime` → 409 with `details.current` on conflict unless `force`), trash or purge (`?permanent=true`, only from the trash) → 204, restore (with its trashed notebooks) |
 | `POST /api/notes/{id}/tags` · `DELETE /api/notes/{id}/tags/{tagId}` | Tag by title (reuses an existing tag), untag |
 | `GET /api/notes/{id}/versions` · `GET /api/notes/{id}/versions/{versionId}` · `POST …/restore` | Version list, one version with body, restore (`{ baseUpdatedTime }`) |
-| `GET /api/tags` · `PUT /api/tags/{id}` · `DELETE /api/tags/{id}` | Tags with counts, rename, delete |
+| `GET /api/tags` · `PUT /api/tags/{id}` · `DELETE /api/tags/{id}` | Tags with counts of active notes, rename (409 when the title is taken, case-insensitively), delete (→ `{ notes }`, how many notes had it) |
 | `GET /api/search?q=` | Results with `matches { inTitle, inBody, snippet, terms }` |
 | `POST /api/resources` · `GET /api/resources/{id}` · `DELETE /api/resources/{id}` | Upload (raw body; `X-File-Name` URI-encoded, `X-File-Type`), download, delete |
 | `GET /api/export` | ZIP of all active notes as Markdown with attachments |
