@@ -46,6 +46,9 @@ public static partial class SecurityLog
     [LoggerMessage(EventId = 1040, Level = LogLevel.Warning, Message = "The demo account {Email} with its published password exists. Never enable Notes__SeedDemo on a server others can reach.")]
     public static partial void DemoAccountPresent(ILogger logger, string email);
 
+    [LoggerMessage(EventId = 1050, Level = LogLevel.Information, Message = "{UserId} exported all their notes from {Client}")]
+    public static partial void DataExported(ILogger logger, string userId, string client);
+
     /// <summary>The client address for log lines (after forwarded headers, when trusted).</summary>
     public static string Client(HttpContext context) => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }

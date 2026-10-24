@@ -1,7 +1,9 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -168,5 +170,46 @@ public class SecurityTests(NotesApiFactory app) : IClassFixture<NotesApiFactory>
     {
         public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken ct = default) =>
             throw new InvalidOperationException("Simulated database failure");
+    }
+
+    [Fact]
+    public async Task Exports_are_logged_as_a_security_event()
+    {
+        var log = new LogCollector();
+        using var logged = app.WithWebHostBuilder(builder => builder
+            .UseSetting("Logging:LogLevel:Notes.Security", "Information")
+            .ConfigureLogging(logging => logging.AddProvider(log)));
+        using var client = logged.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        client.DefaultRequestHeaders.Add("Origin", "http://localhost");
+        (await client.PostAsJsonAsync("/api/auth/login", new { email = "admin@notes.test", password = "admin-password" })).EnsureSuccessStatusCode();
+        var userId = (await client.GetJsonAsync("/api/auth/check")).GetProperty("user").Str("id");
+
+        (await client.GetAsync("/api/export")).EnsureSuccessStatusCode();
+
+        var exported = Assert.Single(log.Entries, e => e.EventId == 1050);
+        Assert.Equal(SecurityLog.Category, exported.Category);
+        Assert.Contains(userId, exported.Message);
+    }
+
+    /// <summary>Keeps every log entry in memory, for assertions on the security log.</summary>
+    private sealed class LogCollector : ILoggerProvider
+    {
+        public ConcurrentQueue<(string Category, int EventId, string Message)> Entries { get; } = new();
+
+        public ILogger CreateLogger(string categoryName) => new Collector(this, categoryName);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class Collector(LogCollector owner, string category) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+                owner.Entries.Enqueue((category, eventId.Id, formatter(state, exception)));
+        }
     }
 }

@@ -29,6 +29,7 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 - New response headers: `Strict-Transport-Security` over HTTPS, `Permissions-Policy`, `Cache-Control: no-store` for API responses; the `Server` header is no longer sent.
 - Overlong passwords are refused before hashing.
 - A password change or reset that fails to save no longer ends the user's sessions while keeping the old password: the new hash and the session cleanup are one transaction, and the security log entry is written only after it committed.
+- Exports are logged as security event 1050 (who, from which address), since a full export is the first thing to look for after a stolen session.
 
 ## [0.1.0] - 2026-10-23
 
