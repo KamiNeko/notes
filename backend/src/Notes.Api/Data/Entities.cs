@@ -14,6 +14,9 @@ public class User
 
     public bool IsAdmin { get; set; }
 
+    /// <summary>Attachment space in MB set by an administrator (0: unlimited); null uses <c>Notes__QuotaMb</c>.</summary>
+    public int? QuotaMb { get; set; }
+
     public DateTimeOffset CreatedTime { get; set; }
 
     public DateTimeOffset UpdatedTime { get; set; }
@@ -35,6 +38,9 @@ public class Session
     public DateTimeOffset LastSeenTime { get; set; }
 
     public DateTimeOffset ExpiresTime { get; set; }
+
+    /// <summary>The browser's User-Agent at sign-in, shortened; shown in the user's session list. No address is stored.</summary>
+    public string UserAgent { get; set; } = "";
 }
 
 /// <summary>A notebook; notebooks nest through <see cref="ParentId"/>.</summary>

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Notes.Api.Auth;
 using Notes.Api.Infrastructure;
@@ -24,7 +25,7 @@ public record RestoreVersionRequest(long? BaseUpdatedTime);
 
 public record CreateUserRequest(string? Email, string? Password, string? DisplayName, bool? IsAdmin);
 
-public record UpdateUserRequest(string? Password, string? DisplayName, bool? IsAdmin);
+public record UpdateUserRequest(string? Password, string? DisplayName, bool? IsAdmin, int? QuotaMb, bool? ResetQuota);
 
 /// <summary>Maps the REST API under <c>/api</c>. Handlers stay thin; the services do the work.</summary>
 public static class ApiEndpoints
@@ -54,6 +55,10 @@ public static class ApiEndpoints
             return string.IsNullOrWhiteSpace(text) ? Results.Ok(Array.Empty<object>()) : Results.Ok(await search.SearchAsync(user.UserId(), text, ct));
         });
         MapResources(authed.MapGroup("/resources"));
+        // Server settings the client shows to the user (only what the UI needs, nothing about the deployment)
+        authed.MapGet("/settings", (IOptions<NotesOptions> options) => Results.Ok(new SettingsDto(Math.Max(0, options.Value.TrashRetentionDays))));
+        authed.MapGet("/storage", async (ClaimsPrincipal user, ResourceService resources, CancellationToken ct) =>
+            Results.Ok(await resources.StorageAsync(user.UserId(), ct)));
         // All of the user's notes as a ZIP of Markdown files (CRA: users can take their data elsewhere)
         authed.MapGet("/export", async (HttpContext context, ClaimsPrincipal user, ExportService export, TimeProvider clock, ILoggerFactory loggers, CancellationToken ct) =>
         {
@@ -91,7 +96,7 @@ public static class ApiEndpoints
                 throw new ApiException(StatusCodes.Status401Unauthorized, "Invalid email or password");
             }
             throttle.Reset(email);
-            var (token, expires) = await sessions.CreateAsync(user.Id, ct);
+            var (token, expires) = await sessions.CreateAsync(user.Id, context.Request.Headers.UserAgent.ToString(), ct);
             cookies.Write(context, token, expires);
             SecurityLog.LoginSucceeded(log, user.Email, client);
             // Only non-browser API clients (no Origin header) get the token in the body; browsers only ever get the httpOnly cookie
@@ -115,6 +120,25 @@ public static class ApiEndpoints
         {
             var user = await users.FindAsync(principal.UserId(), ct) ?? throw new ApiException(401, "Unauthorized: Session has expired or is invalid");
             return Results.Ok(new { valid = true, user = UserService.ToDto(user) });
+        }).RequireAuthorization();
+
+        // Where the account is signed in: the user can end a lost device's session without changing the password
+        auth.MapGet("/sessions", async (ClaimsPrincipal user, SessionService sessions, CancellationToken ct) =>
+            Results.Ok(await sessions.ListAsync(user.UserId(), user.SessionIdOf(), ct))).RequireAuthorization();
+
+        auth.MapDelete("/sessions/{id}", async (string id, HttpContext context, ClaimsPrincipal user, SessionService sessions, ILoggerFactory loggers, CancellationToken ct) =>
+        {
+            await sessions.EndAsync(user.UserId(), id, ct);
+            if (id == Ids.Format(user.SessionIdOf())) SessionCookies.Clear(context);
+            SecurityLog.SessionEnded(loggers.CreateLogger(SecurityLog.Category), Ids.Format(user.UserId()), id, SecurityLog.Client(context));
+            return Results.NoContent();
+        }).RequireAuthorization();
+
+        auth.MapDelete("/sessions", async (HttpContext context, ClaimsPrincipal user, SessionService sessions, ILoggerFactory loggers, CancellationToken ct) =>
+        {
+            var ended = await sessions.EndOthersAsync(user.UserId(), user.SessionIdOf(), ct);
+            SecurityLog.OtherSessionsEnded(loggers.CreateLogger(SecurityLog.Category), Ids.Format(user.UserId()), ended, SecurityLog.Client(context));
+            return Results.Ok(new { ended });
         }).RequireAuthorization();
 
         auth.MapPost("/password", async (ChangePasswordRequest body, ClaimsPrincipal user, UserService users, ILoggerFactory loggers, CancellationToken ct) =>
@@ -274,7 +298,8 @@ public static class ApiEndpoints
             Results.Created((string?)null, await users.CreateAsync(Actor(user), body.Email ?? "", body.Password ?? "", body.DisplayName, body.IsAdmin ?? false, ct)));
 
         group.MapPut("/users/{id}", async (string id, UpdateUserRequest body, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
-            Results.Ok(await users.UpdateAsync(Actor(user), Ids.Parse(id, "user id"), body.Password, body.DisplayName, body.IsAdmin, ct)));
+            Results.Ok(await users.UpdateAsync(Actor(user), Ids.Parse(id, "user id"), body.Password, body.DisplayName, body.IsAdmin,
+                body.QuotaMb, body.ResetQuota ?? false, ct)));
 
         group.MapDelete("/users/{id}", async (string id, ClaimsPrincipal user, UserService users, CancellationToken ct) =>
         {

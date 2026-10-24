@@ -112,6 +112,24 @@ export interface UserInfo {
 }
 
 /**
+ * An account in the administrators' list, with its storage limit and the space its attachments take.
+ */
+export interface AdminUser extends UserInfo {
+  /** Attachment limit in MB set for this user (0: unlimited); null uses the server default */
+  quotaMb: number | null;
+  usedBytes: number;
+}
+
+/**
+ * The space the signed-in user's attachments take.
+ */
+export interface StorageUsage {
+  usedBytes: number;
+  /** null when there is no limit */
+  quotaBytes: number | null;
+}
+
+/**
  * An earlier state of a note's title and body, as listed in the version history.
  */
 export interface NoteVersion {
@@ -136,4 +154,26 @@ export interface NoteVersionDetail {
   body: string;
   updatedTime: number;
   createdTime: number;
+}
+
+/**
+ * A place where the account is signed in (one browser or API client).
+ */
+export interface SignInSession {
+  id: string;
+  createdTime: number;
+  lastSeenTime: number;
+  expiresTime: number;
+  /** The browser's User-Agent at sign-in, shortened; empty for clients that send none */
+  userAgent: string;
+  /** The session making this request */
+  current: boolean;
+}
+
+/**
+ * Server settings the UI shows to the user.
+ */
+export interface ServerSettings {
+  /** Days a note or notebook stays in the trash before it is deleted for good; 0 = until emptied */
+  trashRetentionDays: number;
 }

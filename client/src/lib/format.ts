@@ -51,3 +51,18 @@ export function asSentence(text: string): string {
   const trimmed = text.trim();
   return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
+
+/**
+ * Formats a byte count for people: "0 B", "820 KB", "12.4 MB", "1.5 GB" (binary units, as the server counts).
+ */
+export function formatBytes(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  const digits = unit === 0 || value >= 100 ? 0 : 1;
+  return `${Number(value.toFixed(digits))} ${units[unit]}`;
+}

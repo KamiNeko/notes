@@ -38,8 +38,20 @@ public class NotesOptions
     /// <summary>Versions older than this are deleted; 0 keeps them forever.</summary>
     public int VersionRetentionDays { get; set; }
 
+    /// <summary>Notes and notebooks in the trash longer than this are deleted for good; 0 keeps them until the user empties the trash.</summary>
+    public int TrashRetentionDays { get; set; }
+
+    /// <summary>
+    /// Attachments that no note, trashed note or version links to are deleted this many days after
+    /// upload, and files without a database row this many days after they were written; 0 keeps them.
+    /// </summary>
+    public int AttachmentCleanupDays { get; set; }
+
     /// <summary>Largest attachment accepted, in MB.</summary>
     public int MaxUploadMb { get; set; } = 25;
+
+    /// <summary>Attachment space per user, in MB; 0 is unlimited. Administrators can override it per user.</summary>
+    public int QuotaMb { get; set; }
 
     /// <summary>API requests per client address and 15 minutes.</summary>
     public int RateLimitMax { get; set; } = 1000;
@@ -91,7 +103,10 @@ public static class NotesOptionsValidator
         AtLeast(errors, nameof(options.SessionMaxAgeDays), options.SessionMaxAgeDays, 1);
         AtLeast(errors, nameof(options.VersionIntervalMinutes), options.VersionIntervalMinutes, 0);
         AtLeast(errors, nameof(options.VersionRetentionDays), options.VersionRetentionDays, 0);
+        AtLeast(errors, nameof(options.TrashRetentionDays), options.TrashRetentionDays, 0);
+        AtLeast(errors, nameof(options.AttachmentCleanupDays), options.AttachmentCleanupDays, 0);
         AtLeast(errors, nameof(options.MaxUploadMb), options.MaxUploadMb, 1);
+        AtLeast(errors, nameof(options.QuotaMb), options.QuotaMb, 0);
         AtLeast(errors, nameof(options.RateLimitMax), options.RateLimitMax, 1);
         AtLeast(errors, nameof(options.LoginRateLimitMax), options.LoginRateLimitMax, 1);
         AtLeast(errors, nameof(options.LoginMaxFailures), options.LoginMaxFailures, 1);

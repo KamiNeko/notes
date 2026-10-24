@@ -63,7 +63,7 @@ If a save fails because the server is unreachable, the draft stays in `localStor
 ## Attachments
 
 1. The editor uploads a dropped or pasted file with `POST /api/resources` (raw body, name and type in headers) and inserts `![name](:/<id>)` or `[name](:/<id>)`.
-2. `ResourceService` writes it to a temporary file, detects the MIME type (declared type, extension, then magic bytes) and moves it to `attachments/<userId>/<id>`.
+2. `ResourceService` refuses the upload with 413 when the user's storage limit is already reached. Otherwise it writes the file to a temporary file, detects the MIME type (declared type, extension, then magic bytes) and moves it to `attachments/<userId>/<id>`. The row is inserted in a transaction that holds a per-user advisory lock and checks the limit again with the new file's size, so parallel uploads can't pass it together; a refused file is deleted.
 3. The renderer finds `:/<id>` links, loads `GET /api/resources/<id>` with the session and shows it through a `blob:` URL (SVG as a `data:` URL, so opening it can't run scripts). Downloads keep their original file name.
 
 ## Search
@@ -88,4 +88,4 @@ If a save fails because the server is unreachable, the draft stays in `localStor
 2. Apply EF Core migrations.
 3. Create the first administrator from `Notes__Admin__*` if there are no users.
 4. Delete leftover export files; seed the demo account if `Notes__SeedDemo` (and log a warning).
-5. Start Kestrel; `VersionPruning` runs once a day if `VersionRetentionDays` > 0.
+5. Start Kestrel; `Housekeeping` runs once a day if `VersionRetentionDays`, `TrashRetentionDays` or `AttachmentCleanupDays` is > 0.
