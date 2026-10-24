@@ -9,8 +9,9 @@ updates:
         patterns: ["*"]
         update-types: [minor, patch]
 
+  # npm workspaces (client + packages/ui) share the root package-lock.json
   - package-ecosystem: npm
-    directory: /client
+    directory: /
     schedule: { interval: weekly }
     groups:
       client:

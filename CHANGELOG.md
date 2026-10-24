@@ -4,6 +4,10 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Changed
+
+- The UI components and the theme moved into a shared package, `packages/ui` (`@kamineko/ui`), so other apps can reuse them. The repository root is now an npm workspace: run `npm ci` in the root instead of `client/`. The app looks and works the same.
+
 ## [0.2.0] - 2026-10-24
 
 ### Added

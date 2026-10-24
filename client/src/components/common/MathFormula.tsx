@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 
 type Katex = typeof import("katex").default;
 

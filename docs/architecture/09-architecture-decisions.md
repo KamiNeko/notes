@@ -111,3 +111,19 @@ Each decision is recorded with its context, the decision and its consequences. N
 **Decision.** Not supported. Confidentiality at rest is left to the host (disk encryption).
 
 **Consequences.** A much simpler system. Whoever controls the server can read the notes; this is documented in the security guide.
+
+## ADR-12: Shared UI package in the repository
+
+*Accepted, October 2026.*
+
+**Context.** Other apps (first *simmer*) should get the same look and the same components without copying them. A package of its own repository or registry adds release overhead before a second consumer exists, and changes to a component would need two pull requests.
+
+**Decision.** The shadcn/ui components, the theme tokens and Tailwind base styles (`theme.css`), the theme provider and toggle, `cn` and `useIsMobile` live in `packages/ui` as the package `@kamineko/ui`. The repository root is an npm workspace with the client and the package and one `package-lock.json`. The package ships TypeScript sources and CSS (no build step); the app's Vite compiles them, and `theme.css` tells Tailwind to scan the components through `@source`. It only depends on React, Radix UI and the styling helpers, never on the app (no `@/` imports, no API or query code).
+
+**Consequences.** Notes changes and its UI change in one pull request, and the compiled app is the same as before. Other apps can't consume the package yet. When they do, it moves without changing its imports:
+
+1. Give the package a build (Vite library mode or tsup) that emits JavaScript, type declarations and the CSS, and point `exports` at the output. Keep `@source` pointing at the built files.
+2. Remove `"private": true`, add `publishConfig.registry` (`https://npm.pkg.github.com`) and a workflow that publishes on `ui-v*` tags with `packages: write` only on that job, provenance and an SBOM, like the app release.
+3. Consumers add an `.npmrc` with `@kamineko:registry=https://npm.pkg.github.com` (GitHub Packages needs a token for installs, even for public packages) and depend on a version range instead of the workspace.
+4. Optionally move `packages/ui` with its history to its own repository (`git subtree split`) once more than one app depends on it.
+

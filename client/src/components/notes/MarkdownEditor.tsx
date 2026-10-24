@@ -6,7 +6,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 import { FormattingToolbar } from "./FormattingToolbar";
 import { NoteLinkPicker } from "./NoteLinkPicker";
 import { formattingKeymap, insertNoteLinkCommand, runFormatCommand } from "./editor-commands";

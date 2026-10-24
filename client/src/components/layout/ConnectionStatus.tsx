@@ -4,9 +4,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useConnectionState, useConnectionStatus, useRefresh } from "@/hooks/use-connection";
 import { ConnectionState } from "@/lib/connection";
 import { formatVersion } from "@/lib/version";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { Button } from "@kamineko/ui/components/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@kamineko/ui/components/popover";
+import { cn } from "@kamineko/ui/lib/utils";
 
 function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleString(undefined, {

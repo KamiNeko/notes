@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ImageOff } from "lucide-react";
 import { getResourceObjectUrl } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 
 interface ResourceImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src"> {
   resourceId: string;

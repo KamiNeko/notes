@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Folder, RotateCcw, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@kamineko/ui/components/button";
+import { Skeleton } from "@kamineko/ui/components/skeleton";
 import { ConfirmDialog } from "@/components/common/Dialogs";
 import { QueryError } from "@/components/common/QueryError";
 import { useTrashedNotebooks } from "@/hooks/use-notebooks";

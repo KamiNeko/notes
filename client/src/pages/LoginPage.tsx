@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { ThemeToggle } from "@kamineko/ui/theme/ThemeToggle";
 
 export function LoginPage() {
   const { isAuthenticated, isLoading } = useAuth();

@@ -1,16 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Theme, ThemeProviderContext, ThemeProviderState } from "@/hooks/use-theme";
+import { Theme, ThemeProviderContext, ThemeProviderState } from "../hooks/use-theme";
 
 interface ThemeProviderProps {
   children: React.ReactNode;
   defaultTheme?: Theme;
+  /** localStorage key for the chosen theme; give each app its own. */
   storageKey?: string;
 }
 
+/**
+ * Applies the light/dark class to <html> and remembers the choice in localStorage.
+ */
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
-  storageKey = "notes-theme",
+  storageKey = "theme",
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme

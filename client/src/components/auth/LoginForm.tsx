@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@kamineko/ui/components/button";
+import { Input } from "@kamineko/ui/components/input";
+import { Label } from "@kamineko/ui/components/label";
 import {
   Card,
   CardContent,
@@ -10,7 +10,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@kamineko/ui/components/card";
 import { BookOpen, Loader2, Lock, Mail, AlertCircle } from "lucide-react";
 
 interface LoginFormProps {

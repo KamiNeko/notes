@@ -4,7 +4,7 @@ import { Loader2, Plus, Tag as TagIcon, X } from "lucide-react";
 import { Tag } from "@/lib/types";
 import { useTags } from "@/hooks/use-tags";
 import { useAddTag, useRemoveTag } from "@/hooks/use-mutations";
-import { cn } from "@/lib/utils";
+import { cn } from "@kamineko/ui/lib/utils";
 
 interface TagEditorProps {
   noteId: string;
