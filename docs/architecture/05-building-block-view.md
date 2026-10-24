@@ -73,7 +73,7 @@ erDiagram
 | Table | Content |
 | :--- | :--- |
 | `users` | Email (unique, lower-cased), display name, password hash, `is_admin`. Deleting a user cascades to all their rows; the service also removes their attachment folder. |
-| `sessions` | SHA-256 hash of the token, created, last seen and expiry time. |
+| `sessions` | SHA-256 hash of the token, created, last seen and expiry time, the browser's User-Agent at sign-in (shortened, only for the user's session list; no address). |
 | `notebooks` | Tree through `parent_id`; `deleted_time` for the trash. |
 | `notes` | Title, body (Markdown, or HTML with `markup_language = 2`), cached `preview`, to-do fields, `deleted_time`. Trigram GIN indexes on title and body. |
 | `tags`, `note_tags` | Tag titles are unique per user, ignoring case (index on `lower(title)`). |
@@ -93,6 +93,7 @@ All routes except `/api/health` and `/api/auth/login` need a session. Bodies and
 | :--- | :--- |
 | `GET /api/health` | `{ status, version, commit }` |
 | `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/check` · `POST /api/auth/password` | Sign in (`{ email, password }` → `{ userId, user }`, plus `sessionId` for API clients; 401 wrong credentials, 429 locked), sign out, current user (`{ valid, user }`), change own password (`{ currentPassword, newPassword }` → 204; 400 wrong current password) |
+| `GET /api/auth/sessions` · `DELETE /api/auth/sessions/{id}` · `DELETE /api/auth/sessions` | The user's own live sessions (`[{ id, createdTime, lastSeenTime, expiresTime, userAgent, current }]`), end one (204; 404 for a foreign or unknown id; ending the current one clears the cookie), end all others (`{ ended }`) |
 | `GET /api/notebooks` · `GET /api/notebooks/trash` · `POST /api/notebooks/refresh` | Tree of active notebooks (`{ id, title, parentId, children, noteCount, createdTime, updatedTime }[]`, `noteCount` counts direct notes), trashed notebooks (the top of each trashed subtree with `noteCount`, `notebookCount` and `earlierNoteCount`), the tree again (the client's *Refresh*) |
 | `POST /api/notebooks` · `PUT /api/notebooks/{id}` · `DELETE /api/notebooks/{id}[?permanent=true]` · `POST /api/notebooks/{id}/restore` | Create (`{ title, parentId? }` → 201), rename/move (`parentId: ""` moves to the top level; 400 for a move into itself), trash, purge (only from the trash, else 409), restore (409 when not in the trash). Trash, purge and restore answer the affected `{ notebooks, notes }` counts |
 | `GET /api/notes?notebookId=&tagId=&isTrash=` | Note list (previews, no bodies) |

@@ -68,7 +68,7 @@ Notes is meant to be reachable from the internet, so it is built like it will be
 | | |
 | :--- | :--- |
 | 🔑 **Accounts** | Passwords hashed with PBKDF2-HMAC-SHA512 (210,000 iterations), 12 characters minimum (NIST SP 800-63B). Rate limits per address and an account lock after 10 failed sign-ins. Unknown accounts look exactly like wrong passwords. |
-| 🍪 **Sessions** | Server-side sessions, stored only as hashes. `HttpOnly`, `SameSite=Strict`, `Secure` `__Host-` cookie over HTTPS. 30 days idle, 90 days at most; a password change signs out your other devices. |
+| 🍪 **Sessions** | Server-side sessions, stored only as hashes. `HttpOnly`, `SameSite=Strict`, `Secure` `__Host-` cookie over HTTPS. 30 days idle, 90 days at most. See where you are signed in and sign out a lost device (account menu > *Signed-in devices*); a password change signs out your other devices too. |
 | 🛡️ **Browser** | Strict Content Security Policy without inline scripts, sanitized Markdown and HTML, CSRF protection by Origin check, HSTS, `frame-ancestors 'none'`, no caching of API answers. Risky attachments are always downloads. |
 | 🧱 **Isolation** | Every query is scoped to the signed-in user, covered by tests. The container runs as non-root with a read-only filesystem, no Linux capabilities and `no-new-privileges`; the database is never published. |
 | 📜 **Audit trail** | Sign-ins, failures, locks, password and account changes and refused requests go to a security log with stable event ids, without passwords or tokens. |

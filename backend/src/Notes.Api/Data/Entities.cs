@@ -35,6 +35,9 @@ public class Session
     public DateTimeOffset LastSeenTime { get; set; }
 
     public DateTimeOffset ExpiresTime { get; set; }
+
+    /// <summary>The browser's User-Agent at sign-in, shortened; shown in the user's session list. No address is stored.</summary>
+    public string UserAgent { get; set; } = "";
 }
 
 /// <summary>A notebook; notebooks nest through <see cref="ParentId"/>.</summary>
