@@ -41,6 +41,9 @@ public class NotesOptions
     /// <summary>Largest attachment accepted, in MB.</summary>
     public int MaxUploadMb { get; set; } = 25;
 
+    /// <summary>Largest ZIP accepted by the import, in MB.</summary>
+    public int MaxImportMb { get; set; } = 200;
+
     /// <summary>API requests per client address and 15 minutes.</summary>
     public int RateLimitMax { get; set; } = 1000;
 
@@ -92,6 +95,7 @@ public static class NotesOptionsValidator
         AtLeast(errors, nameof(options.VersionIntervalMinutes), options.VersionIntervalMinutes, 0);
         AtLeast(errors, nameof(options.VersionRetentionDays), options.VersionRetentionDays, 0);
         AtLeast(errors, nameof(options.MaxUploadMb), options.MaxUploadMb, 1);
+        AtLeast(errors, nameof(options.MaxImportMb), options.MaxImportMb, 1);
         AtLeast(errors, nameof(options.RateLimitMax), options.RateLimitMax, 1);
         AtLeast(errors, nameof(options.LoginRateLimitMax), options.LoginRateLimitMax, 1);
         AtLeast(errors, nameof(options.LoginMaxFailures), options.LoginMaxFailures, 1);

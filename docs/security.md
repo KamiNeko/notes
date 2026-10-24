@@ -23,7 +23,8 @@ Notes is built for a household or a small team on a server you control. It assum
 | Malicious attachments | Attachments are served with `X-Content-Type-Options: nosniff`, a sandboxing CSP, and as downloads unless they are images, PDF, plain text, audio or video. SVG and HTML files are always downloads. File names are cleaned, and files are stored under random ids, never under their uploaded names. |
 | Clickjacking, data leaks | `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy` and `-Resource-Policy: same-origin`, a restrictive `Permissions-Policy`, and `Cache-Control: no-store` on all API answers. HSTS over HTTPS. |
 | Spoofed client addresses | `X-Forwarded-*` headers are ignored unless `Notes__TrustProxy` is on, and even then they are only accepted from the proxy's addresses (`Notes__TrustedProxies`). |
-| Overload | Request bodies are limited (`Notes__MaxUploadMb`), passwords longer than 1024 characters are refused before hashing, the API is rate limited per address, and search returns at most 500 results. |
+| Malicious import archives | Imports are read in place and never unpacked to disk; entry names only name notebooks and resolve links, absolute paths and `..` are refused. ZIP bombs are refused by entry count (20,000), unpacked size (10 × `Notes__MaxImportMb`) and per-entry size (`Notes__MaxUploadMb`), with every entry read no further than its declared size. Imported files are ordinary attachments with all their protections. |
+| Overload | Request bodies are limited (`Notes__MaxUploadMb`, `Notes__MaxImportMb` for imports), passwords longer than 1024 characters are refused before hashing, the API is rate limited per address, and search returns at most 500 results. |
 | Misconfiguration | Settings are validated on start: an unknown `Notes__CookieSecure` value, a `Notes__PublicUrl` that isn't an absolute http(s) URL, limits below their minimum or an unparsable `Notes__TrustedProxies` stop the app with a message, instead of running with a weaker policy than intended. |
 | Container escape, tampering | The image runs as a non-root user, the compose file runs it with a read-only filesystem, no Linux capabilities and `no-new-privileges`. The database is not published outside the stack. |
 | Vulnerable or tampered dependencies | All dependencies are pinned (NuGet and npm lock files, base images by digest, GitHub Actions by commit). Dependabot, `npm audit`, NuGet audit (the build fails on known vulnerabilities), CodeQL and an image scan run in CI. Releases come with SBOMs and signed build provenance. |
@@ -66,8 +67,9 @@ Security events are logged under the category `Notes.Security` with stable event
 | 1031 | Rate limit hit | Warning |
 | 1040 | The demo account exists | Warning |
 | 1050 | User downloaded the export of all their notes | Information |
+| 1051 | User imported a ZIP of notes (with the number of notes and attachments) | Information |
 
-Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limit\|exported"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
+Read them with `docker compose logs notes | grep -i "sign-in\|refused\|rate limit\|exported\|imported"`. Docker keeps container logs with the `json-file` driver; set a size limit (`max-size`, `max-file`) in `/etc/docker/daemon.json` and ship them to your log server if you want a longer history. Log lines contain email addresses and IP addresses, which are personal data: keep them only as long as you need them.
 
 ## Data protection
 

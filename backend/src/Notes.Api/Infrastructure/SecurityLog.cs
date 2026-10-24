@@ -49,6 +49,9 @@ public static partial class SecurityLog
     [LoggerMessage(EventId = 1050, Level = LogLevel.Information, Message = "{UserId} exported all their notes from {Client}")]
     public static partial void DataExported(ILogger logger, string userId, string client);
 
+    [LoggerMessage(EventId = 1051, Level = LogLevel.Information, Message = "{UserId} imported {Notes} notes and {Attachments} attachments from {Client}")]
+    public static partial void DataImported(ILogger logger, string userId, int notes, int attachments, string client);
+
     /// <summary>The client address for log lines (after forwarded headers, when trusted).</summary>
     public static string Client(HttpContext context) => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }

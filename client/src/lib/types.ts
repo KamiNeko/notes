@@ -112,6 +112,20 @@ export interface UserInfo {
 }
 
 /**
+ * What an import of a Markdown ZIP created. Everything lands in a new top-level notebook.
+ */
+export interface ImportResult {
+  notebookId: string;
+  notebookTitle: string;
+  notes: number;
+  notebooks: number;
+  attachments: number;
+  /** Up to 100 entries that were left out, with the reason */
+  skipped: { path: string; reason: string }[];
+  skippedCount: number;
+}
+
+/**
  * An earlier state of a note's title and body, as listed in the version history.
  */
 export interface NoteVersion {

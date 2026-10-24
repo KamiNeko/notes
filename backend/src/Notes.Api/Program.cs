@@ -40,6 +40,7 @@ builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<SearchService>();
 builder.Services.AddScoped<ResourceService>();
 builder.Services.AddScoped<ExportService>();
+builder.Services.AddScoped<ImportService>();
 builder.Services.AddHostedService<VersionPruning>();
 
 builder.Services.AddAuthentication(SessionClaims.Scheme)

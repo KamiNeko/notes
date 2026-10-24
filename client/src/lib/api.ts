@@ -9,6 +9,7 @@ import {
   UserInfo,
   NoteVersion,
   NoteVersionDetail,
+  ImportResult,
 } from "./types";
 import { changePendingWrites, recordNetworkError, recordResponse } from "./connection";
 
@@ -580,6 +581,17 @@ export async function uploadResource(file: File): Promise<UploadedResource> {
       "X-File-Name": encodeURIComponent(file.name || "file"),
       "X-File-Type": file.type || "",
     },
+  });
+}
+
+/**
+ * Imports a ZIP of Markdown files (the export's format, or e.g. an Obsidian vault) into a new notebook.
+ */
+export async function importNotes(file: File): Promise<ImportResult> {
+  return request<ImportResult>("/api/import", {
+    method: "POST",
+    body: file,
+    headers: { "Content-Type": "application/zip" },
   });
 }
 

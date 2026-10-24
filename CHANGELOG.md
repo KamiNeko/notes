@@ -4,6 +4,10 @@ All notable changes to Notes. The format follows [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+### Added
+
+- **Import:** account menu > *Import notes* takes a ZIP of Markdown files (Notes' own export, or e.g. an Obsidian vault) and creates its folders as notebooks inside a new notebook, with title, dates, tags and to-do state from the front matter, other files as attachments, and relative links rewritten to the imported notes and attachments (`POST /api/import`, `Notes__MaxImportMb`, default 200). Archives are checked against ZIP bombs and unsafe paths.
+
 ## [0.2.0] - 2026-10-24
 
 ### Added

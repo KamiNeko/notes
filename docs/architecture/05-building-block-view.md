@@ -37,7 +37,7 @@ flowchart TB
 | `Program.cs` | Dependency injection, Kestrel limits, forwarded headers, the middleware order, startup (migrations, first administrator, demo seed, cleanup). The arguments `healthcheck` and `users …` run CLI commands instead of the server. |
 | `Endpoints/ApiEndpoints.cs` | All routes as minimal APIs. Handlers only parse, call a service and return a DTO. |
 | `Auth/` | `UserService` (accounts, passwords), `SessionService` (server-side sessions), `SessionCookies`, `SessionAuthenticationHandler` (the `Session` scheme), `LoginThrottle` (account lock). |
-| `Services/` | One service per resource: `NotebookService`, `NoteService`, `VersionService`, `TagService`, `SearchService` (with the `SearchQuery` parser), `ResourceService` (with `ResourceTypes`), `ExportService`. Plus `TextPreview` (list previews), `Titles`, `Dtos.cs` (all JSON shapes) and `VersionPruning` (background job). |
+| `Services/` | One service per resource: `NotebookService`, `NoteService`, `VersionService`, `TagService`, `SearchService` (with the `SearchQuery` parser), `ResourceService` (with `ResourceTypes`), `ExportService`, `ImportService` (with the `FrontMatter` reader). Plus `TextPreview` (list previews), `Titles`, `Dtos.cs` (all JSON shapes) and `VersionPruning` (background job). |
 | `Data/` | Entities, `NotesDbContext`, migrations, the demo seed (`DemoSeed.json`, `DemoSeeder`). |
 | `Infrastructure/` | `NotesOptions`, `ApiException`, `Ids`, `Times`, middleware (errors, Origin check, security headers), `RateLimits`, `TrustedProxies`, `SecurityLog`. |
 | `Cli/` | `UserCommands` (`users list|add|set-password`), `HealthCheck`. |
@@ -103,4 +103,5 @@ All routes except `/api/health` and `/api/auth/login` need a session. Bodies and
 | `GET /api/search?q=` | Results with `matches { inTitle, inBody, snippet, terms }` |
 | `POST /api/resources` · `GET /api/resources/{id}` · `DELETE /api/resources/{id}` | Upload (raw body; `X-File-Name` URI-encoded, `X-File-Type`), download, delete |
 | `GET /api/export` | ZIP of all active notes as Markdown with attachments |
+| `POST /api/import` | Raw ZIP body (at most `Notes__MaxImportMb`) → 201 `{ notebookId, notebookTitle, notes, notebooks, attachments, skipped: [{ path, reason }], skippedCount }`. 400 for a damaged or non-ZIP file, 413 when it is too large or unpacks to too much. |
 | `GET/POST /api/admin/users` · `PUT/DELETE /api/admin/users/{id}` | Administrators only: list, create, change (name, role, password), delete. The last administrator can't be demoted or deleted; nobody can delete their own account. |

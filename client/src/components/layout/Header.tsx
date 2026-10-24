@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { AboutDialog } from "@/components/common/Dialogs";
 import { ChangePasswordDialog } from "@/components/account/ChangePasswordDialog";
 import { UsersDialog } from "@/components/account/UsersDialog";
+import { ImportDialog } from "@/components/account/ImportDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,6 +26,7 @@ import {
   LogOut,
   Menu,
   Search,
+  Upload,
   User,
   Users,
   X,
@@ -56,6 +58,7 @@ export function Header({
   const [aboutOpen, setAboutOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [usersOpen, setUsersOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   // Ctrl+K / Cmd+K focuses the search field (or opens the mobile menu that holds it). In the note
   // editor it inserts a link instead; the editor marks the event as handled then.
@@ -217,6 +220,10 @@ export function Header({
                 <span>Export notes</span>
               </a>
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setImportOpen(true)} className="cursor-pointer flex items-center gap-2">
+              <Upload className="h-3.5 w-3.5" />
+              <span>Import notes</span>
+            </DropdownMenuItem>
             {user?.isAdmin && (
               <DropdownMenuItem onClick={() => setUsersOpen(true)} className="cursor-pointer flex items-center gap-2">
                 <Users className="h-3.5 w-3.5" />
@@ -238,6 +245,7 @@ export function Header({
         </DropdownMenu>
         <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
         <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
+        <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
         {user?.isAdmin && <UsersDialog open={usersOpen} onOpenChange={setUsersOpen} />}
       </div>
     </header>
