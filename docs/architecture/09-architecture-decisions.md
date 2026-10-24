@@ -2,15 +2,15 @@
 
 Each decision is recorded with its context, the decision and its consequences. New decisions are appended; a reversed decision is marked *superseded* and links its successor.
 
-## ADR-1: Own backend instead of Joplin Server
+## ADR-1: Own backend with its own database
 
 *Accepted, October 2026.*
 
-**Context.** Joplin Web (a browser client for Joplin Server) was the only client in use. Joplin Server is a sync target: it stores serialized items and offers no query API, so Joplin Web had to keep an in-memory copy of every user's notes, speak the sync protocol and work around conflicts, encryption and missing server-side search.
+**Context.** The browser is the only client. A sync server that just stores serialized items offers no query API: a web client on top of it has to keep an in-memory copy of every user's notes, speak a sync protocol and work around conflicts, encryption and missing server-side search.
 
-**Decision.** Build an own backend with its own database and drop Joplin from the setup.
+**Decision.** Build an own backend with its own database that owns the data model and answers queries directly.
 
-**Consequences.** Search, versions, multi-user isolation and export become simple server features. Syncing with the Joplin desktop and mobile apps is no longer possible; notes are copied over by hand once.
+**Consequences.** Search, versions, multi-user isolation and export become simple server features. There is no sync with desktop or mobile apps; notes from elsewhere are copied over by hand once.
 
 ## ADR-2: .NET 10 minimal APIs and EF Core
 
@@ -26,11 +26,11 @@ Each decision is recorded with its context, the decision and its consequences. N
 
 *Accepted, October 2026.*
 
-**Context.** Search must support Joplin's syntax (words, phrases, negation, filters) for a few thousand notes per user.
+**Context.** Search must support words, phrases, negation and filters (`notebook:`, `tag:`, …) for a few thousand notes per user.
 
 **Decision.** Filter in SQL with `ILIKE` patterns backed by `pg_trgm` GIN indexes; rank and build snippets in C# for at most 500 candidates. No separate search engine.
 
-**Consequences.** No extra service to run or back up; substring matching behaves like Joplin Web's. No stemming or relevance scoring like a full-text engine; PostgreSQL full-text search (`tsvector`) can be added later if needed.
+**Consequences.** No extra service to run or back up; substring matching finds parts of words. No stemming or relevance scoring like a full-text engine; PostgreSQL full-text search (`tsvector`) can be added later if needed.
 
 ## ADR-4: Attachments on the filesystem
 
@@ -52,15 +52,15 @@ Each decision is recorded with its context, the decision and its consequences. N
 
 **Consequences.** Instant revocation and role changes; no signing keys to manage or rotate. One indexed lookup per request, which is negligible at this scale.
 
-## ADR-6: Keep Joplin Web's REST API
+## ADR-6: Keep the existing client's REST API
 
 *Accepted, October 2026.*
 
-**Context.** The Joplin Web client is mature and well tested; the design should stay the same.
+**Context.** The client was taken over from an earlier, mature and well-tested web client; its design should stay the same.
 
-**Decision.** The new backend answers the same routes and JSON shapes. Joplin-specific parts (conflict copies, E2EE state, server host) were removed from client and API; version history, export and user management were added.
+**Decision.** The backend answers the routes and JSON shapes that client already used. Parts tied to its old sync backend (conflict copies, E2EE state, server host) were removed from client and API; version history, export and user management were added.
 
-**Consequences.** The client was ported with small changes, and its tests carried over. Some names keep Joplin's conventions (`parentId`, `isTodo`, Unix milliseconds).
+**Consequences.** The client was ported with small changes, and its tests carried over. Some names keep the earlier conventions (`parentId`, `isTodo`, `resources`, Unix milliseconds).
 
 ## ADR-7: Snapshot versions per editing session
 
@@ -72,15 +72,15 @@ Each decision is recorded with its context, the decision and its consequences. N
 
 **Consequences.** One version per editing session, cheap storage, and restores can be undone. Changes within one session can't be told apart.
 
-## ADR-8: Joplin-compatible Markdown and ids
+## ADR-8: Plain Markdown with common extensions, 32-hex ids
 
 *Accepted, October 2026.*
 
-**Context.** Existing notes come from Joplin and should look the same after copying.
+**Context.** Notes must stay plain text that other tools can read, and notes pasted in from other apps should keep their formatting.
 
-**Decision.** Same Markdown dialect and renderer as Joplin Web, 32-hex ids, `:/<id>` links.
+**Decision.** GitHub-flavored Markdown plus widely used extensions (KaTeX math, Mermaid, `==mark==`, `++insert++`, `~sub~`, `^sup^`), 32-hex ids, and `:/<id>` links to notes and attachments.
 
-**Consequences.** Copying notes over keeps their formatting. The renderer carries Joplin's extensions.
+**Consequences.** Pasted Markdown keeps its formatting, and the export is readable anywhere. The renderer carries the extensions as remark plugins.
 
 ## ADR-9: One container for API and client
 
@@ -98,15 +98,15 @@ Each decision is recorded with its context, the decision and its consequences. N
 
 **Context.** Users must be able to take their data elsewhere (data ownership goal, CRA Annex I part I (2)(m), GDPR Art. 20).
 
-**Decision.** `GET /api/export` returns a ZIP with one Markdown file per note (YAML front matter compatible with Joplin's "Markdown + Front Matter" import), folders per notebook, attachments in `_resources/`, and relative links.
+**Decision.** `GET /api/export` returns a ZIP with one Markdown file per note with YAML front matter, folders per notebook, attachments in `_resources/`, and relative links.
 
-**Consequences.** The export opens in Obsidian, Joplin and any editor. Trash and version history are not part of it.
+**Consequences.** The export opens in Obsidian, other notes apps that import Markdown with front matter, and any editor. Trash and version history are not part of it.
 
 ## ADR-12: Import only the own Markdown export format, into a new notebook
 
 *Accepted, October 2026.*
 
-**Context.** The export (ADR-10) had no way back: moving to another server or restoring one account meant re-creating notes by hand. A Joplin importer (JEX, RAW) would need Joplin's item format and is out of scope.
+**Context.** The export (ADR-10) had no way back: moving to another server or restoring one account meant re-creating notes by hand. Importers for other apps' own formats are out of scope.
 
 **Decision.** `POST /api/import` reads the export's format: folders, Markdown/HTML files with the same front matter keys, other files as attachments, relative links. Obsidian vaults and similar folders of Markdown work as a subset. Everything goes into a new top-level notebook, with new ids; nothing existing is merged or overwritten. The archive is read in place, never unpacked to disk, with limits on size, entry count and unpacked size.
 

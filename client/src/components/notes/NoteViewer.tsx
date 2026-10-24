@@ -562,7 +562,7 @@ export function NoteViewer({
                 )}
 
                 {note.markupLanguage === MARKUP_HTML && (
-                  <div className="flex items-center gap-1.5" title="This note is stored as HTML, e.g. a page saved with Joplin's Web Clipper">
+                  <div className="flex items-center gap-1.5" title="This note is stored as HTML, e.g. a page saved with a web clipper">
                     <FileCode className="h-3.5 w-3.5" />
                     <span>HTML note</span>
                   </div>

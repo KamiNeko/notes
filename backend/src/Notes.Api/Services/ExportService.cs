@@ -10,7 +10,7 @@ namespace Notes.Api.Services;
 
 /// <summary>
 /// Exports all of a user's notes as a ZIP of Markdown files, so the data can move to another app
-/// (Obsidian, Joplin's "Markdown + Front Matter" import, any editor). Notebooks become folders, each
+/// (Obsidian, any app that imports Markdown with front matter, any editor). Notebooks become folders, each
 /// note a <c>.md</c> file (<c>.html</c> for HTML notes) with YAML front matter (id, dates, tags,
 /// to-do state), and attachments go to <c>_resources/</c>. Links <c>:/&lt;id&gt;</c> to notes and
 /// attachments are rewritten to relative paths. The trash and version history are not exported.

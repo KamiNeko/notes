@@ -99,7 +99,7 @@ public class Note
     /// <summary>Plain-text preview of the body for lists, kept up to date on every write.</summary>
     public string Preview { get; set; } = "";
 
-    /// <summary>1 = Markdown, 2 = HTML (pages copied from Joplin's Web Clipper).</summary>
+    /// <summary>1 = Markdown, 2 = HTML (e.g. pages saved with a web clipper).</summary>
     public int MarkupLanguage { get; set; } = 1;
 
     public bool IsTodo { get; set; }

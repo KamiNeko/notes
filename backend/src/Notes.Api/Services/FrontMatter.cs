@@ -4,8 +4,7 @@ using System.Text;
 namespace Notes.Api.Services;
 
 /// <summary>
-/// The YAML front matter keys Notes reads on import, as the export writes them (and Joplin's
-/// "Markdown + Front Matter" export): <c>title</c>, <c>created</c>, <c>updated</c>, <c>tags</c>,
+/// The YAML front matter keys Notes reads on import, as the export writes them: <c>title</c>, <c>created</c>, <c>updated</c>, <c>tags</c>,
 /// <c>completed?</c> (marks a to-do) and <c>due</c>. Only this flat subset of YAML is understood.
 /// </summary>
 public record FrontMatter(string? Title, DateTimeOffset? Created, DateTimeOffset? Updated, List<string> Tags, bool? Completed, DateTimeOffset? Due)

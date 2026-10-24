@@ -162,7 +162,7 @@ describe("Refresh button", () => {
   });
 
   it("does not refetch when the backend refresh fails, and shows the error", async () => {
-    refreshResponse = () => jsonResponse({ error: "Joplin Server unreachable" }, 502);
+    refreshResponse = () => jsonResponse({ error: "Server unreachable" }, 502);
     renderStatus();
     await waitFor(() => expect(queryFns.notes).toHaveBeenCalledTimes(1));
     await openDetails();
@@ -171,6 +171,6 @@ describe("Refresh button", () => {
 
     await waitFor(() => expect(trigger().textContent).toBe("Can't reach server"));
     expect(queryFns.notes).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("dialog").textContent).toContain("Joplin Server unreachable");
+    expect(screen.getByRole("dialog").textContent).toContain("Server unreachable");
   });
 });
